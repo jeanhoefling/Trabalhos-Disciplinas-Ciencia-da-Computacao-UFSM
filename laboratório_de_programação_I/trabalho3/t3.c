@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+#include "tela.h"
 
-//Uma nota é um pequeno texto (limitado a um número máximo de bytes, que não pode ser inferior a 100), além de informações adicionais que permitem sua organização.
-//O programa deve gerenciar um número qualquer de notas, limitado a um máximo (que não pode ser inferior a 100).
-
-//Cada nota deve ser implementada em um registro. O conjunto de notas deve ser mantido em um vetor desses registros.
+//JEAN
 typedef struct {
     unsigned char r;
     unsigned char g;
@@ -26,6 +25,149 @@ typedef struct {
     char etiqueta[4];
 } nota;
 
+
+// desenha um retângulo colorido com texto dentro
+void desenha_ret(int l, int c, int dl, int dc,
+                 int r, int g, int b,
+                 char s[])
+{
+  // desenha o retângulo com espaços, selecionando a cor como fundo
+  t_corfundo(r, g, b);
+  // imprime dl linhas com dc espaços cada
+  for (int i = 0; i < dl; i++) {
+    // posiciona o cursor onde inicia essa linha do retângulo
+    t_lincol(l + i, c);
+    // %10s imprime pelo menos 10 caracteres, completando com espaços
+    //   se a string for menor
+    // %.10s imprime no máximo 10 caracteres
+    // %10.10s imprime exatamente 10 caracteres
+    // se um número for substituído por '*', será pego no próximo argumento
+    printf("%*s", dc, ""); // imprime dc espaços (podia tbém ser um for)
+  }
+
+  // escreve o tamanho da tela no canto do retângulo
+  int alt, larg;
+  t_tamanho(&alt, &larg);
+  t_lincol(l, c);
+  printf("%dx%d", alt, larg);
+
+  // escreve s no centro do retângulo
+  t_lincol(l + dl/2, c + dc/2 - strlen(s)/2);
+  t_cortexto(0, 0, 0);
+  printf("%s", s);
+}
+
+typedef enum { move, edita, fim } modo_t;
+
+typedef struct {
+  modo_t modo;
+  nota nota;
+} estado_t;
+
+void muda_modo(estado_t *e, modo_t novo_modo)
+{
+  e->modo = novo_modo;
+}
+
+// modo "move"
+
+void tela_move(estado_t *e)
+{
+  t_limpa();
+  desenha_ret(2, 3, 20, 50, 10, 20, 30, "fundo");
+  desenha_ret(e->nota.retangulo.y, e->nota.retangulo.x, e->nota.retangulo.altura, e->nota.retangulo.largura, e->nota.cor.r, e->nota.cor.g, e->nota.cor.b, e->nota.texto);
+  // põe o cursor no centro do retângulo
+  t_lincol(e->nota.retangulo.y + e->nota.retangulo.altura/2, e->nota.retangulo.x + e->nota.retangulo.largura/2);
+}
+
+void move_direita(estado_t *e)
+{
+  e->nota.retangulo.x++;
+}
+
+void move_esquerda(estado_t *e)
+{
+  e->nota.retangulo.x--;
+}
+
+void exec_move(estado_t *e)
+{
+  // modo sem necessidade de manter valores locais, implementado sem
+  //   laço próprio
+
+  // desenha a tela
+  tela_move(e);
+
+  // lê um comando
+  tecla_t tec = t_tecla();
+
+  // realiza uma ação conforme o comando lido
+  switch (tec) {
+    case T_ESQUERDA:
+      move_esquerda(e);
+      break;
+    case T_DIREITA:
+      move_direita(e);
+      break;
+    case 'e':
+      muda_modo(e, edita);
+      break;
+    case T_ESC:
+      muda_modo(e, fim);
+      break;
+    default: ;
+  }
+}
+
+// modo edita
+
+void tela_edita(estado_t *e, char texto[])
+{
+  t_limpa();
+  desenha_ret(2, 3, 20, 50, 10, 20, 30, "fundo");
+  desenha_ret(e->nota.retangulo.y, e->nota.retangulo.x, e->nota.retangulo.altura, e->nota.retangulo.largura, 150, 49, 97, texto);
+}
+
+void remove_ultimo_caractere(char s[])
+{
+  int l = strlen(s);
+  if (l > 0) {
+    s[l - 1] = '\0';
+  }
+}
+
+void insere_ultimo_caractere(char s[], char c)
+{
+  int l = strlen(s);
+  s[l] = c;
+  s[l + 1] = '\0';
+}
+
+void exec_edita(estado_t *e)
+{
+  // modo com necessidade de manter valores locais, implementado com
+  //   laço próprio
+  char txt[20] = "";
+
+  while (e->modo == edita) {
+    // desenha a tela
+    tela_edita(e, txt);
+
+    // lê um comando
+    tecla_t tec = t_tecla();
+
+    // realiza uma ação conforme o comando lido
+    if (tec == T_ESC) {
+      muda_modo(e, move);
+    } else if (tec == T_BS) {
+      remove_ultimo_caractere(txt);
+    } else if (tec >= 'a' && tec <= 'z') {
+      insere_ultimo_caractere(txt, tec);
+    }
+  }
+}
+
+//JEAN
 int ler_notas (FILE *arq, int *n_notas, nota **notas) {
     int cont, c;
     while (fscanf(arq, "%s %hhu %hhu %hhu %d %d %d %d ", 
@@ -69,7 +211,10 @@ int ler_notas (FILE *arq, int *n_notas, nota **notas) {
     return 0;
 }
 
+
 int main (void) {
+
+    // Le o arquivo
     int n_notas = 1;
     int *ptr_n_notas = &n_notas;
     nota *notas = malloc(n_notas * sizeof(nota));
@@ -87,33 +232,23 @@ int main (void) {
         return -1;
     }
 
-    char modo[10] = "start";
-    char escolhe_modo;
-    char texto_de_busca[150] = "";
-    char etiqueta_de_busca[4] = "";
 
-    while (!(strcmp(modo, "terminar") == 0)) {
-        printf("Escolha o modo: \n P: Principal | T: Edição de texto | E: Edição de etiqueta | C: Edição de cor | B: Edição de texto de busca | b: Edição de etiqueta de busca | F: Fim ");
-        scanf(" %c", &escolhe_modo);
-
-        if (escolhe_modo == 'P') {
-
+    t_inicia();
+    estado_t estado = { move, notas[0] };
+    while (estado.modo != fim) {
+        switch (estado.modo) {
+        case move:
+            exec_move(&estado);
+            break;
+        case edita:
+            exec_edita(&estado);
+            break;
+        default:
+            break;
         }
-
-        else if (escolhe_modo == 'B') {
-            printf("Digite o texto de busca: ");
-            scanf("%s", texto_de_busca);
-        }
-
-        else if (escolhe_modo == 'b') {
-            printf("Digite a etiqueta de busca: ");
-            scanf("%s", etiqueta_de_busca);
-        }
-
-        if (escolhe_modo == 'F') {
-            strcpy(modo, "terminar");
-        }
+        
     }
-    printf("%d", n_notas);
+    // retorna a tela ao modo normal
+    t_fim();
     fclose(arq);
 }

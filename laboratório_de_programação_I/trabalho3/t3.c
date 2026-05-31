@@ -36,6 +36,7 @@
     int cursor_x;
     int cursor_y;
 
+    nota *nota_corrente;
   } estado_t;
 
 
@@ -86,95 +87,134 @@
                   e->notas[i].cor.r, e->notas[i].cor.g, e->notas[i].cor.b, e->notas[i].texto);
     }
     // põe o cursor no centro do retângulo
-    t_lincol(e->notas[0].retangulo.y + e->notas[0].retangulo.altura/2, e->notas[0].retangulo.x + e->notas[0].retangulo.largura/2);
+    t_lincol(e->cursor_y, e->cursor_x);
+  }
+
+  void atualiza_nota_corrente (estado_t *e) {
+    retangulo atual;
+    for (int i = 0; i < e->n_notas; i++) {
+      atual = e->notas[i].retangulo;
+      if (e->cursor_x >= atual.x && e->cursor_x <= (atual.x + atual.largura) && e->cursor_y >= atual.y && e->cursor_y <= atual.y + atual.altura) {
+        e->nota_corrente = &(e->notas[i]);
+      }
+    }
   }
 
   void move_direita(estado_t *e)
   {
     e->cursor_x++;
+    atualiza_nota_corrente(e);
   }
 
   void move_esquerda(estado_t *e)
   {
     e->cursor_x--;
+    atualiza_nota_corrente(e);
   }
 
   void move_cima(estado_t *e)
   {
     e->cursor_y--;
+    atualiza_nota_corrente(e);
   }
 
   void move_baixo(estado_t *e)
   {
     e->cursor_y++;
+    atualiza_nota_corrente(e);
   }
 
-  void move_nota_direita(estado_t *e)
-  {
-    e->notas[0].retangulo.x++;
-  }
+void move_nota_direita(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.x++;
+    }
+}
 
-  void move_nota_esquerda(estado_t *e)
-  {
-    e->notas[0].retangulo.x--;
-  }
+void move_nota_esquerda(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.x--;
+    }
+}
 
-  void move_nota_cima(estado_t *e)
-  {
-    e->notas[0].retangulo.y--;
-  }
+void move_nota_cima(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.y--;
+    }
+}
 
-  void move_nota_baixo(estado_t *e)
-  {
-    e->notas[0].retangulo.y++;
-  }
+void move_nota_baixo(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.y++;
+    }
+}
 
-  void diminui_direita(estado_t *e)
-  {
-    e->notas[0].retangulo.largura--;
-  }
+void diminui_direita(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.largura--;
+    }
+}
 
-  void diminui_esquerda(estado_t *e)
-  {
-    e->notas[0].retangulo.x++;
-    e->notas[0].retangulo.largura--;
-  }
+void diminui_esquerda(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.x++;
+        e->nota_corrente->retangulo.largura--;
+    }
+}
 
-  void diminui_cima(estado_t *e)
-  {
-    e->notas[0].retangulo.y++;
-    e->notas[0].retangulo.altura--;
-  }
+void diminui_cima(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.y++;
+        e->nota_corrente->retangulo.altura--;
+    }
+}
 
-  void diminui_baixo(estado_t *e)
-  {
-    e->notas[0].retangulo.altura--;
-  }
+void diminui_baixo(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.altura--;
+    }
+}
 
-  void aumenta_direita(estado_t *e)
-  {
-    e->notas[0].retangulo.largura++;
-  }
+void aumenta_direita(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.largura++;
+    }
+}
 
-  void aumenta_esquerda(estado_t *e)
-  {
-    e->notas[0].retangulo.x--;
-    e->notas[0].retangulo.largura++;
-  }
+void aumenta_esquerda(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.x--;
+        e->nota_corrente->retangulo.largura++;
+    }
+}
 
-  void aumenta_cima(estado_t *e)
-  {
-    e->notas[0].retangulo.altura++;
-  }
+void aumenta_cima(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.altura++;
+    }
+}
 
-  void aumenta_baixo(estado_t *e)
-  {
-    e->notas[0].retangulo.y--;
-    e->notas[0].retangulo.altura++;
-  }
+void aumenta_baixo(estado_t *e)
+{
+    if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.y--;
+        e->nota_corrente->retangulo.altura++;
+    }
+}
 
   void exec_move(estado_t *e)
   {
+    atualiza_nota_corrente(e);
     // modo sem necessidade de manter valores locais, implementado sem
     //   laço próprio
 
@@ -197,7 +237,7 @@
         move_cima(e);
         break;
       case T_BAIXO:
-        move_nota_baixo(e);
+        move_baixo(e);
         break;
       case T_SHIFT_ESQUERDA:
         move_nota_esquerda(e);
@@ -361,7 +401,7 @@
 
 
       t_inicia();
-      estado_t estado = { move, notas, n_notas, 5, 5 };
+      estado_t estado = { move, notas, n_notas, 5, 5, NULL };
       while (estado.modo != fim) {
           switch (estado.modo) {
           case move:

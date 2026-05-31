@@ -1,128 +1,216 @@
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <string.h>
-  #include <stdbool.h>
-  #include "tela.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include "tela.h"
 
-  //JEAN
-  typedef struct {
-      unsigned char r;
-      unsigned char g;
-      unsigned char b;
-  } cor;
+//JEAN
+typedef struct {
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+} cor;
 
-  typedef struct {
-      int x;
-      int y;
-      int largura;
-      int altura;
-  } retangulo;
+typedef struct {
+    int x;
+    int y;
+    int largura;
+    int altura;
+} retangulo;
 
-  typedef struct {
-      char texto[150];
-      cor cor;
-      retangulo retangulo;
-      char etiqueta[4];
-  } nota;
+typedef struct {
+    char texto[150];
+    cor cor;
+    retangulo retangulo;
+    char etiqueta[4];
+} nota;
 
-  typedef enum { move, edita, fim } modo_t;
+typedef enum { move, edita, fim } modo_t;
 
-  typedef struct {
-    modo_t modo;
+typedef struct {
+  modo_t modo;
 
-    nota *notas;
-    int n_notas;
+  nota *notas;
+  int n_notas;
 
-    int cursor_x;
-    int cursor_y;
+  int cursor_x;
+  int cursor_y;
 
-    nota *nota_corrente;
-  } estado_t;
+  nota *nota_corrente;
+  nota *nota_removida;
+} estado_t;
 
-
-  // desenha um retângulo colorido com texto dentro
-  void desenha_ret(int l, int c, int dl, int dc,
-                  int r, int g, int b,
-                  char s[])
-  {
-    // desenha o retângulo com espaços, selecionando a cor como fundo
-    t_corfundo(r, g, b);
-    // imprime dl linhas com dc espaços cada
-    for (int i = 0; i < dl; i++) {
-      // posiciona o cursor onde inicia essa linha do retângulo
-      t_lincol(l + i, c);
-      // %10s imprime pelo menos 10 caracteres, completando com espaços
-      //   se a string for menor
-      // %.10s imprime no máximo 10 caracteres
-      // %10.10s imprime exatamente 10 caracteres
-      // se um número for substituído por '*', será pego no próximo argumento
-      printf("%*s", dc, ""); // imprime dc espaços (podia tbém ser um for)
-    }
-
-    // escreve o tamanho da tela no canto do retângulo
-    int alt, larg;
-    t_tamanho(&alt, &larg);
-    t_lincol(l, c);
-    printf("%dx%d", alt, larg);
-
-    // escreve s no centro do retângulo
-    t_lincol(l + dl/2, c + dc/2 - strlen(s)/2);
-    t_cortexto(0, 0, 0);
-    printf("%s", s);
-  }
-
-  void muda_modo(estado_t *e, modo_t novo_modo)
-  {
-    e->modo = novo_modo;
-  }
-
-  // modo "move"
-
-  void tela_move(estado_t *e)
-  {
-    t_limpa();
-    desenha_ret(1, 1, 30, 70, 10, 20, 30, "fundo");
-    for (int i = 0; i < e->n_notas; i++) {
-      desenha_ret(e->notas[i].retangulo.y, e->notas[i].retangulo.x, e->notas[i].retangulo.altura, e->notas[i].retangulo.largura,
-                  e->notas[i].cor.r, e->notas[i].cor.g, e->notas[i].cor.b, e->notas[i].texto);
-    }
-    // põe o cursor no centro do retângulo
-    t_lincol(e->cursor_y, e->cursor_x);
-  }
-
-  void atualiza_nota_corrente (estado_t *e) {
-    retangulo atual;
-    for (int i = 0; i < e->n_notas; i++) {
-      atual = e->notas[i].retangulo;
-      if (e->cursor_x >= atual.x && e->cursor_x <= (atual.x + atual.largura) && e->cursor_y >= atual.y && e->cursor_y <= atual.y + atual.altura) {
-        e->nota_corrente = &(e->notas[i]);
-      }
+void atualiza_nota_corrente (estado_t *e) {
+  retangulo atual;
+  e->nota_corrente = NULL;
+  for (int i = 0; i < e->n_notas; i++) {
+    atual = e->notas[i].retangulo;
+    if (e->cursor_x >= atual.x && e->cursor_x <= (atual.x + atual.largura) && e->cursor_y >= atual.y && e->cursor_y <= atual.y + atual.altura) {
+      e->nota_corrente = &(e->notas[i]);
     }
   }
+}
 
-  void move_direita(estado_t *e)
-  {
-    e->cursor_x++;
+void mover_inicio (estado_t *e) {
+  int indice = e->nota_corrente - e->notas;
+  nota tmp = *(e->nota_corrente);
+  for (int i = indice; i > 0; i--) {
+    e->notas[i] = e->notas[i - 1];
+  }
+  e->notas[0] = tmp;
+  atualiza_nota_corrente(e);
+}
+
+void mover_fim (estado_t *e) {
+  int indice = e->nota_corrente - e->notas;
+  nota tmp = *(e->nota_corrente);
+  for (int i = indice; i < e->n_notas - 1; i++) {
+    e->notas[i] = e->notas[i + 1];
+  }
+  e->notas[e->n_notas - 1] = tmp;
+  atualiza_nota_corrente(e);
+}
+
+void gravar_notas (estado_t *e, char file_name[]) {
+  FILE *arq = fopen(file_name, "w");
+  if (arq == NULL) {
+    printf("Não consegui abrir o arquivo para gravar\n");
+    return;
+  }
+  for (int i = 0; i < e->n_notas; i++) {
+    fprintf(arq, "%s %hhu %hhu %hhu %d %d %d %d \"%s\"\n", 
+            e->notas[i].etiqueta, e->notas[i].cor.r, e->notas[i].cor.g, e->notas[i].cor.b, e->notas[i].retangulo.x, e->notas[i].retangulo.y,
+          e->notas[i].retangulo.largura, e->notas[i].retangulo.altura, e->notas[i].texto);
+  }
+  fclose(arq);
+}
+
+void nova_nota (estado_t *e) {
+  e->notas = realloc(e->notas, (e->n_notas + 1) * sizeof(nota));
+  if (e->notas == NULL) {
+    printf("Não foi possível realocar memória\n");
+    return;
+  }
+  e->n_notas++;
+
+  nota *n = &(e->notas[e->n_notas - 1]);
+  strcpy(n->texto, "K");
+  strcpy(n->etiqueta, "A00");
+  n->cor.r = 120;
+  n->cor.g = 120;
+  n->cor.b = 120;
+  n->retangulo.x = 1;
+  n->retangulo.y = 1;
+  n->retangulo.largura = 5;
+  n->retangulo.altura = 5;
+}
+
+void deleta_nota (estado_t *e) {
+  int indice;
+  if (e->nota_corrente != NULL) {
+    e->nota_removida = e->nota_corrente;
+    indice = e->nota_corrente - e->notas;
+    for(int i = indice; i < e->n_notas - 1; i++) {
+      e->notas[i] = e->notas[i + 1];
+    }
+    e->n_notas--;
+    e->notas = realloc(e->notas, e->n_notas * sizeof(nota));
+    if (e->notas == NULL) {
+      printf("Não foi possível realocar memória\n");
+      return;
+    }
+  }
+  atualiza_nota_corrente(e);
+}
+
+void inserir_nota_removida (estado_t *e) {
+  if (e->nota_removida != NULL) {
+    e->notas = realloc(e->notas, (e->n_notas + 1) * sizeof(nota));
+    if (e->notas == NULL) {
+      printf("Não foi possível realocar memória\n");
+      return;
+    }
+    e->n_notas++;
+    e->notas[e->n_notas - 1] = *(e->nota_removida);
+    e->nota_removida = NULL;
     atualiza_nota_corrente(e);
   }
+}
 
-  void move_esquerda(estado_t *e)
-  {
-    e->cursor_x--;
-    atualiza_nota_corrente(e);
+
+// desenha um retângulo colorido com texto dentro
+void desenha_ret(int l, int c, int dl, int dc,
+                int r, int g, int b,
+                char s[])
+{
+  // desenha o retângulo com espaços, selecionando a cor como fundo
+  t_corfundo(r, g, b);
+  // imprime dl linhas com dc espaços cada
+  for (int i = 0; i < dl; i++) {
+    // posiciona o cursor onde inicia essa linha do retângulo
+    t_lincol(l + i, c);
+    // %10s imprime pelo menos 10 caracteres, completando com espaços
+    //   se a string for menor
+    // %.10s imprime no máximo 10 caracteres
+    // %10.10s imprime exatamente 10 caracteres
+    // se um número for substituído por '*', será pego no próximo argumento
+    printf("%*s", dc, ""); // imprime dc espaços (podia tbém ser um for)
   }
 
-  void move_cima(estado_t *e)
-  {
-    e->cursor_y--;
-    atualiza_nota_corrente(e);
-  }
+  // escreve o tamanho da tela no canto do retângulo
+  int alt, larg;
+  t_tamanho(&alt, &larg);
+  t_lincol(l, c);
+  printf("%dx%d", alt, larg);
 
-  void move_baixo(estado_t *e)
-  {
-    e->cursor_y++;
-    atualiza_nota_corrente(e);
+  // escreve s no centro do retângulo
+  t_lincol(l + dl/2, c + dc/2 - strlen(s)/2);
+  t_cortexto(0, 0, 0);
+  printf("%s", s);
+}
+
+void muda_modo(estado_t *e, modo_t novo_modo)
+{
+  e->modo = novo_modo;
+}
+
+// modo "move"
+
+void tela_move(estado_t *e)
+{
+  t_limpa();
+  desenha_ret(0, 0, 30, 70, 10, 20, 30, "fundo");
+  for (int i = 0; i < e->n_notas; i++) {
+    desenha_ret(e->notas[i].retangulo.y, e->notas[i].retangulo.x, e->notas[i].retangulo.altura, e->notas[i].retangulo.largura,
+                e->notas[i].cor.r, e->notas[i].cor.g, e->notas[i].cor.b, e->notas[i].texto);
   }
+  // põe o cursor no centro do retângulo
+  t_lincol(e->cursor_y, e->cursor_x);
+}
+
+void move_direita(estado_t *e)
+{
+  e->cursor_x++;
+  atualiza_nota_corrente(e);
+}
+
+void move_esquerda(estado_t *e)
+{
+  e->cursor_x--;
+  atualiza_nota_corrente(e);
+}
+
+void move_cima(estado_t *e)
+{
+  e->cursor_y--;
+  atualiza_nota_corrente(e);
+}
+
+void move_baixo(estado_t *e)
+{
+  e->cursor_y++;
+  atualiza_nota_corrente(e);
+}
 
 void move_nota_direita(estado_t *e)
 {
@@ -200,6 +288,7 @@ void aumenta_esquerda(estado_t *e)
 void aumenta_cima(estado_t *e)
 {
     if (e->nota_corrente != NULL) {
+        e->nota_corrente->retangulo.y--;
         e->nota_corrente->retangulo.altura++;
     }
 }
@@ -207,12 +296,11 @@ void aumenta_cima(estado_t *e)
 void aumenta_baixo(estado_t *e)
 {
     if (e->nota_corrente != NULL) {
-        e->nota_corrente->retangulo.y--;
         e->nota_corrente->retangulo.altura++;
     }
 }
 
-  void exec_move(estado_t *e)
+  void exec_move(estado_t *e, char file_name[])
   {
     atualiza_nota_corrente(e);
     // modo sem necessidade de manter valores locais, implementado sem
@@ -274,6 +362,24 @@ void aumenta_baixo(estado_t *e)
         break;
       case T_CTRL_BAIXO:
         aumenta_baixo(e);
+        break;
+      case T_DEL:
+        deleta_nota(e);
+        break;
+      case T_INS:
+        inserir_nota_removida(e);
+        break;
+      case 'i':
+        mover_inicio(e);
+        break;
+      case 'f':
+        mover_fim(e);
+        break;
+      case 'g':
+        gravar_notas(e, file_name);
+        break;
+      case 'n':
+        nova_nota(e);
         break;
       case 'e':
         muda_modo(e, edita);
@@ -399,13 +505,15 @@ void aumenta_baixo(estado_t *e)
           return -1;
       }
 
+      fclose(arq);
+
 
       t_inicia();
       estado_t estado = { move, notas, n_notas, 5, 5, NULL };
       while (estado.modo != fim) {
           switch (estado.modo) {
           case move:
-              exec_move(&estado);
+              exec_move(&estado, file_name);
               break;
           case edita:
               exec_edita(&estado);
@@ -417,5 +525,6 @@ void aumenta_baixo(estado_t *e)
       }
       // retorna a tela ao modo normal
       t_fim();
-      fclose(arq);
+
+      //Escreve as notas atualizadas no arquivo
   }

@@ -36,6 +36,13 @@ typedef enum {
   T_CTRL_BAIXO,
   T_CTRL_DIREITA,
   T_CTRL_ESQUERDA,
+
+  //JEAN
+  T_ALT_SHIFT_CIMA,
+  T_ALT_SHIFT_BAIXO,
+  T_ALT_SHIFT_DIREITA,
+  T_ALT_SHIFT_ESQUERDA,
+
   // outras teclas
   T_ENTER,
   T_ALT_ENTER,

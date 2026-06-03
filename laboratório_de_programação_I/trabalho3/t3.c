@@ -462,10 +462,19 @@ void exec_edita(estado_t *e)
 }
 
 // modo edita texto de busca
+void deleta_caracter (char txt[], int cur) {
+  int l = strlen(txt);
+  if (l > 0) {
+    for (int i = (l - cur); i < l; i++) {
+      txt[i] = txt[i+1];
+    }
+  } 
+}
 
-void tela_edita_tbusca (char txt[]) {
+void tela_edita_tbusca (char txt[], int cursor) {
   t_limpa();
-  desenha_ret(2, 3, 20, 50, 10, 20, 30, txt);
+  desenha_ret(2, 2, 20, 50, 10, 20, 30, txt);
+  t_lincol(2 + 20/2, 2 + 50/2 + (strlen(txt) + 1)/2 - cursor);
 }
 
 void exec_edita_tbusca(estado_t *e)
@@ -475,10 +484,12 @@ void exec_edita_tbusca(estado_t *e)
   char txt[200] = "";
   strcpy(txt, e->texto_busca);
 
+  int cursor = 0;
+
   
   while (e->modo == edita_tbusca) {
     // desenha a tela
-    tela_edita_tbusca(txt);
+    tela_edita_tbusca(txt, cursor);
 
     // lê um comando
     tecla_t tec = t_tecla();
@@ -494,6 +505,20 @@ void exec_edita_tbusca(estado_t *e)
     } else if (tec == T_ENTER) {
       strcpy(e->texto_busca, txt);
       muda_modo(e, move);
+    } else if (tec == T_DIREITA) {
+      if (cursor > 0) {
+        cursor--;
+      }
+    } else if (tec == T_ESQUERDA) {
+      if (cursor < strlen(txt)) {
+        cursor++;
+      }
+    } else if (tec == T_DEL) {
+      deleta_caracter(txt, cursor);
+    } else if (tec == T_HOME) {
+      cursor = strlen(txt);
+    } else if (tec == T_END) {
+      cursor = 0;
     }
   }
 }

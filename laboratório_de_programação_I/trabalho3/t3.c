@@ -44,6 +44,8 @@ typedef struct {
 
   int largura_fundo;
   int altura_fundo;
+
+  cor cor_edicao;
 } estado_t;
 
 int realoca_memoria(estado_t *e, int dmemoria) {
@@ -176,7 +178,12 @@ void desenha_ret(int l, int c, int dl, int dc,
 
   // escreve s no centro do retângulo
   t_lincol(l + dl/2, c + dc/2 - strlen(s)/2);
-  t_cortexto(0, 0, 0);
+  if ((r + g + b)/3 < 120) {
+    t_cortexto(255, 255, 255);
+  }
+  else {
+    t_cortexto(0, 0, 0);
+  }
   printf("%s", s);
 }
 
@@ -196,6 +203,18 @@ void tela_move(estado_t *e)
       desenha_ret(e->notas[i].retangulo.y, e->notas[i].retangulo.x, e->notas[i].retangulo.altura, e->notas[i].retangulo.largura,
                   e->notas[i].cor.r, e->notas[i].cor.g, e->notas[i].cor.b, e->notas[i].texto);
       }
+  }
+  if (e->nota_corrente != NULL) {
+    if ((e->nota_corrente->cor.r + e->nota_corrente->cor.g + e->nota_corrente->cor.b)/3 < 120) {
+      t_corfundo(255, 255, 255);
+      t_cortexto(0, 0, 0);
+    }
+    else {
+      t_corfundo(0, 0, 0);
+      t_cortexto(255, 255, 255);
+    }
+    t_lincol(e->nota_corrente->retangulo.y, e->nota_corrente->retangulo.x + e->nota_corrente->retangulo.largura - 1);
+    printf("c");
   }
   // põe o cursor no centro do retângulo
   t_lincol(e->cursor_y, e->cursor_x);
@@ -409,6 +428,9 @@ void exec_move(estado_t *e, char file_name[])
     case 'e':
       muda_modo(e, edita_texto);
       break;
+    case 'c':
+      muda_modo(e, edita_cor);
+      break;
     case T_ESC:
       muda_modo(e, fim);
       break;
@@ -418,7 +440,7 @@ void exec_move(estado_t *e, char file_name[])
 
 // modo edita nota
 
-void tela_edita(estado_t *e, char texto[])
+void tela_edita_texto(estado_t *e, char texto[])
 {
   t_limpa();
   desenha_ret(2, 3, 20, 50, 10, 20, 30, "fundo");
@@ -448,7 +470,7 @@ void grava_texto(estado_t *e, char txt[]) {
 }
 
 
-void exec_edita(estado_t *e)
+void exec_edita_texto(estado_t *e)
 {
   // modo com necessidade de manter valores locais, implementado com
   //   laço próprio
@@ -460,7 +482,7 @@ void exec_edita(estado_t *e)
   
   while (e->modo == edita_texto) {
     // desenha a tela
-    tela_edita(e, txt);
+    tela_edita_texto(e, txt);
 
     // lê um comando
     tecla_t tec = t_tecla();
@@ -541,6 +563,44 @@ void exec_edita_tbusca(estado_t *e)
   }
 }
 
+void tela_edita_cor (estado_t *e) {
+  t_limpa();
+  desenha_ret(1, 1, 5, 39, 0, 0, 0, "  r    g    b  ");
+  t_lincol(4, 14);
+  printf("%03d  %03d  %03d", e->cor_edicao.r, e->cor_edicao.g, e->cor_edicao.b);
+}
+
+void exec_edita_cor (estado_t *e) {
+  while (e->modo == edita_cor) {
+    tela_edita_cor(e);
+    tecla_t tec = t_tecla();
+
+    if (tec == 'e' || tec == 'r') {
+
+    } else if (tec == 'v' || tec == 'g') {
+
+    } else if (tec == 'a' || tec == 'b') {
+
+    } else if (tec == T_CIMA) {
+
+    } else if (tec == T_SHIFT_CIMA) {
+
+    } else if (tec == T_BAIXO) {
+
+    } else if (tec == T_SHIFT_BAIXO) {
+
+    } else if (tec == T_ESQUERDA) {
+
+    } else if (tec == T_DIREITA) {
+
+    } else if (tec == T_ENTER) {
+
+    } else if (tec == T_ESC) {
+      muda_modo(e, move);
+    }
+  }
+}
+
 //JEAN
 int ler_notas (FILE *arq, estado_t *e) {
     int cont, c;
@@ -588,7 +648,7 @@ int main (void) {
         return -1;
     }
 
-    estado_t estado = { move, NULL, 1, 5, 5, NULL, {0}, 0, "", 70, 40};
+    estado_t estado = { move, NULL, 1, 5, 5, NULL, {0}, 0, "", 70, 40, {0}};
     estado.notas = malloc(sizeof(nota));
     if (estado.notas == NULL) {
       printf("Não foi possível alocar memória.\n");
@@ -611,10 +671,13 @@ int main (void) {
             exec_move(&estado, file_name);
             break;
         case edita_texto:
-            exec_edita(&estado);
+            exec_edita_texto(&estado);
             break;
         case edita_tbusca:
             exec_edita_tbusca(&estado);
+            break;
+        case edita_cor:
+            exec_edita_cor(&estado);
             break;
         default:
             break;

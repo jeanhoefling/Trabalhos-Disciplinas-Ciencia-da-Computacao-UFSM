@@ -1,4 +1,4 @@
-// teclado.h
+// tela.h
 // 
 // declaração de constantes e funções para acesso ao teclado em modo cru
 // para l126a

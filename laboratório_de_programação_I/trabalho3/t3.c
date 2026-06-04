@@ -37,9 +37,13 @@ typedef struct {
   int cursor_y;
 
   nota *nota_corrente;
-  nota *nota_removida;
+  nota nota_removida;
+  int existe_nota_removida;
 
   char texto_busca[50];
+
+  int largura_fundo;
+  int altura_fundo;
 } estado_t;
 
 int realoca_memoria(estado_t *e, int dmemoria) {
@@ -63,7 +67,7 @@ void atualiza_nota_corrente (estado_t *e) {
   e->nota_corrente = NULL;
   for (int i = 0; i < e->n_notas; i++) {
     atual = e->notas[i].retangulo;
-    if (e->cursor_x >= atual.x && e->cursor_x <= (atual.x + atual.largura) && e->cursor_y >= atual.y && e->cursor_y <= atual.y + atual.altura) {
+    if (e->cursor_x >= atual.x && e->cursor_x <= (atual.x + atual.largura) && e->cursor_y >= atual.y && e->cursor_y < atual.y + atual.altura) {
       e->nota_corrente = &(e->notas[i]);
     }
   }
@@ -113,8 +117,8 @@ void nova_nota (estado_t *e) {
   n->cor.r = 120;
   n->cor.g = 120;
   n->cor.b = 120;
-  n->retangulo.x = 1;
-  n->retangulo.y = 1;
+  n->retangulo.x = e->cursor_x;
+  n->retangulo.y = e->cursor_y;
   n->retangulo.largura = 5;
   n->retangulo.altura = 5;
 }
@@ -122,21 +126,24 @@ void nova_nota (estado_t *e) {
 void deleta_nota (estado_t *e) {
   int indice;
   if (e->nota_corrente != NULL) {
-    e->nota_removida = e->nota_corrente;
+    e->nota_removida = *(e->nota_corrente);
     indice = e->nota_corrente - e->notas;
     for(int i = indice; i < e->n_notas - 1; i++) {
       e->notas[i] = e->notas[i + 1];
     }
     if(!realoca_memoria(e, -1)) return;
+    e->existe_nota_removida = 1;
   }
   atualiza_nota_corrente(e);
 }
 
 void inserir_nota_removida (estado_t *e) {
-  if (e->nota_removida != NULL) {
+  if (e->existe_nota_removida) {
     if(!realoca_memoria(e, 1)) return;
-    e->notas[e->n_notas - 1] = *(e->nota_removida);
-    e->nota_removida = NULL;
+    e->nota_removida.retangulo.x = e->cursor_x;
+    e->nota_removida.retangulo.y = e->cursor_y;
+    e->notas[e->n_notas - 1] = e->nota_removida;
+    e->existe_nota_removida = 0;
     atualiza_nota_corrente(e);
   }
 }
@@ -183,7 +190,7 @@ void muda_modo(estado_t *e, modo_t novo_modo)
 void tela_move(estado_t *e)
 {
   t_limpa();
-  desenha_ret(0, 0, 30, 70, 10, 20, 30, "fundo");
+  desenha_ret(1, 1, e->altura_fundo, e->largura_fundo, 10, 20, 30, "fundo");
   for (int i = 0; i < e->n_notas; i++) {
     if (strcmp(e->texto_busca, "") == 0 || strstr(e->notas[i].texto, e->texto_busca)) {
       desenha_ret(e->notas[i].retangulo.y, e->notas[i].retangulo.x, e->notas[i].retangulo.altura, e->notas[i].retangulo.largura,
@@ -196,112 +203,121 @@ void tela_move(estado_t *e)
 
 void move_direita(estado_t *e)
 {
-  e->cursor_x++;
-  atualiza_nota_corrente(e);
+  if(e->cursor_x < e->largura_fundo + 1) {
+    e->cursor_x++;
+  }
 }
 
 void move_esquerda(estado_t *e)
 {
-  e->cursor_x--;
-  atualiza_nota_corrente(e);
+  if (e->cursor_x > 1) {
+    e->cursor_x--;
+  }
 }
 
 void move_cima(estado_t *e)
 {
-  e->cursor_y--;
-  atualiza_nota_corrente(e);
+  if (e->cursor_y > 1) {
+    e->cursor_y--;
+  }
 }
 
 void move_baixo(estado_t *e)
 {
-  e->cursor_y++;
-  atualiza_nota_corrente(e);
+  if(e->cursor_y < e->altura_fundo) {
+    e->cursor_y++;
+  }
 }
 
 void move_nota_direita(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
+    if (e->nota_corrente != NULL && 
+    e->nota_corrente->retangulo.x + e->nota_corrente->retangulo.largura < e->largura_fundo + 1) {
         e->nota_corrente->retangulo.x++;
     }
 }
 
 void move_nota_esquerda(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
-        e->nota_corrente->retangulo.x--;
+    if (e->nota_corrente != NULL && e->nota_corrente->retangulo.x > 1) {
+      e->nota_corrente->retangulo.x--;
     }
 }
 
 void move_nota_cima(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
-        e->nota_corrente->retangulo.y--;
+    if (e->nota_corrente != NULL && e->nota_corrente->retangulo.y > 1) {
+      e->nota_corrente->retangulo.y--;
     }
 }
 
 void move_nota_baixo(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
+    if (e->nota_corrente != NULL &&
+    e->nota_corrente->retangulo.y + e->nota_corrente->retangulo.altura < e->altura_fundo + 1) {
         e->nota_corrente->retangulo.y++;
     }
 }
 
 void diminui_direita(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
+    if (e->nota_corrente != NULL && e->nota_corrente->retangulo.largura > 1) {
         e->nota_corrente->retangulo.largura--;
     }
 }
 
 void diminui_esquerda(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
-        e->nota_corrente->retangulo.x++;
+    if (e->nota_corrente != NULL && e->nota_corrente->retangulo.largura > 1) {
         e->nota_corrente->retangulo.largura--;
+        e->nota_corrente->retangulo.x++;
     }
 }
 
 void diminui_cima(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
-        e->nota_corrente->retangulo.y++;
+    if (e->nota_corrente != NULL && e->nota_corrente->retangulo.altura > 1) {
         e->nota_corrente->retangulo.altura--;
+        e->nota_corrente->retangulo.y++;
     }
 }
 
 void diminui_baixo(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
+    if (e->nota_corrente != NULL && e->nota_corrente->retangulo.altura > 1) {
         e->nota_corrente->retangulo.altura--;
+    
     }
 }
 
 void aumenta_direita(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
+    if (e->nota_corrente != NULL &&
+    e->nota_corrente->retangulo.x + e->nota_corrente->retangulo.largura < e->largura_fundo + 1) {
         e->nota_corrente->retangulo.largura++;
     }
 }
 
 void aumenta_esquerda(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
-        e->nota_corrente->retangulo.x--;
+    if (e->nota_corrente != NULL && e->nota_corrente->retangulo.x > 1) {
         e->nota_corrente->retangulo.largura++;
+        e->nota_corrente->retangulo.x--;
     }
 }
 
 void aumenta_cima(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
-        e->nota_corrente->retangulo.y--;
+    if (e->nota_corrente != NULL && e->nota_corrente->retangulo.y > 1) {
         e->nota_corrente->retangulo.altura++;
+        e->nota_corrente->retangulo.y--;
     }
 }
 
 void aumenta_baixo(estado_t *e)
 {
-    if (e->nota_corrente != NULL) {
+    if (e->nota_corrente != NULL &&
+    e->nota_corrente->retangulo.y + e->nota_corrente->retangulo.altura < e->altura_fundo + 1) {
         e->nota_corrente->retangulo.altura++;
     }
 }
@@ -421,8 +437,10 @@ void remove_ultimo_caractere(char s[])
 void insere_ultimo_caractere(char s[], char c)
 {
   int l = strlen(s);
-  s[l] = c;
-  s[l + 1] = '\0';
+  if (strlen(s) < 149) {
+    s[l] = c;
+    s[l + 1] = '\0';
+  }
 }
 
 void grava_texto(estado_t *e, char txt[]) {
@@ -561,7 +579,7 @@ int ler_notas (FILE *arq, estado_t *e) {
 int main (void) {
 
     // Le o arquivo
-    char file_name[10];
+    char file_name[30];
     printf("Digite o arquivo para ler as notas: \n");
     scanf("%s", file_name);
     FILE *arq = fopen(file_name, "r");
@@ -570,7 +588,7 @@ int main (void) {
         return -1;
     }
 
-    estado_t estado = { move, NULL, 1, 5, 5, NULL, NULL, ""};
+    estado_t estado = { move, NULL, 1, 5, 5, NULL, {0}, 0, "", 70, 40};
     estado.notas = malloc(sizeof(nota));
     if (estado.notas == NULL) {
       printf("Não foi possível alocar memória.\n");
@@ -579,6 +597,7 @@ int main (void) {
 
     int conseguiu_ler = ler_notas(arq, &estado);
     if (conseguiu_ler == -1) {
+      free(estado.notas);
         return -1;
     }
 
@@ -604,6 +623,7 @@ int main (void) {
     }
     // retorna a tela ao modo normal
     t_fim();
+    free(estado.notas);
 
     //Escreve as notas atualizadas no arquivo
 }

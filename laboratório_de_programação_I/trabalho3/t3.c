@@ -45,7 +45,7 @@ typedef struct {
   int largura_fundo;
   int altura_fundo;
 
-  cor cor_edicao;
+  unsigned char cor_edicao[3];
 } estado_t;
 
 int realoca_memoria(estado_t *e, int dmemoria) {
@@ -563,39 +563,111 @@ void exec_edita_tbusca(estado_t *e)
   }
 }
 
-void tela_edita_cor (estado_t *e) {
+void tela_edita_cor (estado_t *e, int c) {
   t_limpa();
   desenha_ret(1, 1, 5, 39, 0, 0, 0, "  r    g    b  ");
+  t_lincol(3, 15 + 5*c);
+  if (c == 0) {
+    t_cortexto(255, 0, 0);
+    printf("r");
+  }
+  else if (c == 1) {
+    t_cortexto(0, 255, 0);
+    printf("g");
+  }
+  else if (c == 2) {
+    t_cortexto(0, 0, 255);
+    printf("b");
+  }
   t_lincol(4, 14);
-  printf("%03d  %03d  %03d", e->cor_edicao.r, e->cor_edicao.g, e->cor_edicao.b);
+  t_cortexto(255, 255, 255);
+  printf("%03d  %03d  %03d", e->cor_edicao[0], e->cor_edicao[1], e->cor_edicao[2]);
+  t_lincol(5, 34);
+  printf("EX ");
+  t_corfundo(e->cor_edicao[0], e->cor_edicao[1], e->cor_edicao[2]);
+  printf(" ");
+  t_lincol(1, 9);
+}
+
+unsigned char soma_digito_cor (tecla_t tec, unsigned char c) {
+  if (c * 10 + (tec - '0') <= 255) {
+    return c * 10 + (tec - '0');
+  }
+  else {
+    return c;
+  }
 }
 
 void exec_edita_cor (estado_t *e) {
+  int ultimo_foi_digito = 0;
+  int cor_atual = 0;
   while (e->modo == edita_cor) {
-    tela_edita_cor(e);
+    tela_edita_cor(e, cor_atual);
     tecla_t tec = t_tecla();
 
     if (tec == 'e' || tec == 'r') {
-
+      cor_atual = 0;
     } else if (tec == 'v' || tec == 'g') {
-
+      cor_atual = 1;
     } else if (tec == 'a' || tec == 'b') {
-
+      cor_atual = 2;
     } else if (tec == T_CIMA) {
-
+      if (e->cor_edicao[cor_atual] < 255) {
+        e->cor_edicao[cor_atual]++;
+      }
     } else if (tec == T_SHIFT_CIMA) {
-
+      if (e->cor_edicao[cor_atual] <= 225) {
+        e->cor_edicao[cor_atual] += 30;
+      }
+      else {
+        e->cor_edicao[cor_atual] = 255;
+      }
     } else if (tec == T_BAIXO) {
-
+      if (e->cor_edicao[cor_atual] > 0) {
+        e->cor_edicao[cor_atual]--;
+      }
     } else if (tec == T_SHIFT_BAIXO) {
-
+      if (e->cor_edicao[cor_atual] >= 30) {
+        e->cor_edicao[cor_atual] -= 30;
+      }
+      else {
+        e->cor_edicao[cor_atual] = 0;
+      }
     } else if (tec == T_ESQUERDA) {
-
+      cor_atual--;
+      if (cor_atual < 0) {
+        cor_atual = 2;
+      }
     } else if (tec == T_DIREITA) {
-
+      cor_atual++;
+      if (cor_atual > 2) {
+        cor_atual = 0;
+      }
     } else if (tec == T_ENTER) {
-
+      e->nota_corrente->cor.r = e->cor_edicao[0];
+      e->nota_corrente->cor.g = e->cor_edicao[1];
+      e->nota_corrente->cor.b = e->cor_edicao[2];
+      muda_modo(e, move);
     } else if (tec == T_ESC) {
+      muda_modo(e, move);
+    } else if (tec >= '0' && tec <= '9') {
+      if (!ultimo_foi_digito) {
+        e->cor_edicao[cor_atual] = tec - '0';
+        ultimo_foi_digito = 1;
+      }
+      else {
+        e->cor_edicao[cor_atual] = soma_digito_cor(tec, e->cor_edicao[cor_atual]);
+      }
+    }
+    //AQUI UTILIZEI SHIFT+DIREITA PORQUE NÃO HAVIA SHIFT+ENTER
+    else if (tec == T_SHIFT_DIREITA) {
+      for (int i = 0; i < e->n_notas; i++) {
+        if (strstr(e->notas[i].texto, e->texto_busca)) {
+          e->notas[i].cor.r = e->cor_edicao[0];
+          e->notas[i].cor.g = e->cor_edicao[1];
+          e->notas[i].cor.b = e->cor_edicao[2];
+        }
+      }
       muda_modo(e, move);
     }
   }

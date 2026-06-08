@@ -26,8 +26,7 @@
     #define S_DIREITA 15
     #define S_ESQUERDA 16
 
-    int vidas = 1;
-    int chave = 0;
+    int vidas = 1, chave = 0, vidas_mapa = 1, setas_mapa = 1;
 
     //                0    1     2     3     4     5     6     7     8     9     10    11    12    13    14    15    16
     int ascii[17] = { 0, 9787, 9785, 9553, 9552, 9639, 9556, 9559, 9562, 9565, 9829, 9919, 9635, 9650, 9660, 9658, 9668 };
@@ -102,8 +101,11 @@
         if (proxima_posicao == VAZIO || proxima_posicao == VIDA || proxima_posicao == CHAVE || 
             proxima_posicao == S_CIMA || proxima_posicao == S_BAIXO || proxima_posicao == S_DIREITA || proxima_posicao == S_ESQUERDA) {
             int new_dlinha = 0, new_dcoluna = 0;
-            if (compara_string(personagem->nome, "jogador") && (proxima_posicao == VIDA)) {
-                vidas++;
+            if (proxima_posicao == VIDA) {
+                vidas_mapa--;
+                if(compara_string(personagem->nome, "jogador")) {
+                    vidas++;
+                }
             }
             else if (proxima_posicao == CHAVE) {
                 if (compara_string(personagem->nome, "jogador")) {
@@ -114,6 +116,7 @@
                 }
             }
             else if (proxima_posicao == S_CIMA || proxima_posicao == S_BAIXO || proxima_posicao == S_DIREITA || proxima_posicao == S_ESQUERDA) {
+                setas_mapa--;
                 if (proxima_posicao == S_CIMA) {
                     new_dlinha = -1;
                 }
@@ -142,8 +145,12 @@
         else if (proxima_posicao == SAIDA && compara_string(personagem->nome, "jogador") && chave > 0) {
             return 2;
         }
-        else if (proxima_posicao == JOGADOR || proxima_posicao == INIMIGO) {
+        else if (proxima_posicao == JOGADOR) {
             vidas--;
+            if (vidas == 0) {
+                matriz[personagem->linha + dlinha][personagem->coluna + dcoluna] = matriz[personagem->linha][personagem->coluna];
+                matriz[personagem->linha][personagem->coluna] = VAZIO;
+            }
             return 1;
         }
         else {
@@ -155,14 +162,14 @@
     int move_personagem (int matriz[LINHAS][COLUNAS], personagem *personagem) {
         int conseguiu_movimentar = 0, direcao;
         while (!(conseguiu_movimentar)) {
-            direcao = rand() % 4;
-            if (direcao == 0) {
+            direcao = rand() % 10000;
+            if (direcao < 2500) {
                 conseguiu_movimentar = move(matriz, personagem, -1, 0);
             }
-            else if (direcao == 1) {
+            else if (direcao < 5000) {
                 conseguiu_movimentar = move(matriz, personagem, 1, 0);
             }
-            else if (direcao == 2) {
+            else if (direcao < 7500) {
                 conseguiu_movimentar = move(matriz, personagem, 0, -1);
             }
             else {
@@ -222,16 +229,20 @@
         int posicao[2];
         gerar_posicao(mat, posicao);
         mat[posicao[0]][posicao[1]] = CHAVE;
-        gerar_posicao(mat, posicao);
-        mat[posicao[0]][posicao[1]] = rand() % 4 + 13;
-        mat[1][11] = SAIDA; 
+        mat[1 + (rand() % 9)][(rand() % 2) * 11] = SAIDA; 
 
         int venceu = 0;
 
         while(rodada < 10000 && !(venceu) && vidas > 0) {
-            if (rodada % 100 == 0) {
+            if (rodada % 75 == 0 && vidas_mapa <= 3 && vidas < 3) {
                 gerar_posicao(mat, posicao);
                 mat[posicao[0]][posicao[1]] = VIDA;
+                vidas_mapa++;
+            }
+            if (rodada % 150 == 0 && setas_mapa <= 3) {
+                gerar_posicao(mat, posicao);
+                mat[posicao[0]][posicao[1]] = rand() % 4 + 13;
+                setas_mapa++;
             }
             imprimeMatriz(mat, rodada);
             usleep(0.1 * 1000000);
@@ -246,6 +257,7 @@
             rodada++;
         }
 
+        imprimeMatriz(mat, rodada);
         if (venceu) {
             wprintf(L"Parabéns, você venceu!!!\n");
         }

@@ -203,7 +203,8 @@ void desenha_ret(int l, int c, int dl, int dc,
     cont += dc;
   }
 
-  t_lincol(l + dl/2 + lnt/2, c + dc/2 - (strlen(s) - cont)/2);
+  //REVER BEM ESSE TLINCOL, FUNCIONA MAS TA ESTRANHO
+  t_lincol(l + dl/2 + lnt/2 - 1 + lnt%2, c + dc/2 - (strlen(s) - cont)/2);
   for (int i = cont; i < strlen(s); i++) {
     printf("%c", s[i]);
   }

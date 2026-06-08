@@ -76,6 +76,9 @@ void atualiza_nota_corrente (estado_t *e) {
 }
 
 void mover_inicio (estado_t *e) {
+  if (e->nota_corrente == NULL) {
+    return;
+  }
   int indice = e->nota_corrente - e->notas;
   nota tmp = *(e->nota_corrente);
   for (int i = indice; i > 0; i--) {
@@ -86,6 +89,9 @@ void mover_inicio (estado_t *e) {
 }
 
 void mover_fim (estado_t *e) {
+  if (e->nota_corrente == NULL) {
+    return;
+  }
   int indice = e->nota_corrente - e->notas;
   nota tmp = *(e->nota_corrente);
   for (int i = indice; i < e->n_notas - 1; i++) {
@@ -256,6 +262,7 @@ void move_nota (estado_t *e, int dx, int dy) {
         && e->nota_corrente->retangulo.y + dy >= 1) {
           e->nota_corrente->retangulo.y += dy;
         }
+    move_cursor(e, dx, dy);
   }
 
 }
@@ -391,12 +398,19 @@ void exec_move(estado_t *e, char file_name[])
 
 // modo edita nota
 
-void tela_edita_texto(estado_t *e, char texto[])
+void tela_edita_texto(char texto[], int cur)
 {
   t_limpa();
-  desenha_ret(2, 3, 20, 50, 10, 20, 30, "fundo");
-  char texto_temp[200] = "";
-  desenha_ret(e->nota_corrente->retangulo.y, e->nota_corrente->retangulo.x, e->nota_corrente->retangulo.altura, e->nota_corrente->retangulo.largura, 150, 49, 97, texto);
+  //pode ser melhorada para mostrar a nota corrente
+  t_lincol(1, 1);
+  printf("%s", texto);
+  t_lincol(1, cur + 1);
+}
+
+void move_cursor_edita (int *cur, int dx, char texto[]) {
+  if ((*cur) + dx >= 0 && (*cur) + dx <= strlen(texto)) {
+    (*cur) += dx;
+  }
 }
 
 void remove_ultimo_caractere(char s[])
@@ -404,6 +418,26 @@ void remove_ultimo_caractere(char s[])
   int l = strlen(s);
   if (l > 0) {
     s[l - 1] = '\0';
+  }
+}
+
+void remove_caractere(char s[], int cur)
+{
+  int l = strlen(s);
+  for (int i = cur; i < l - 1; i++) {
+    s[i] = s[i + 1];
+  }
+  s[l - 1] = '\0';
+}
+
+void insere_caractere(char s[], char c, int cur)
+{
+  int l = strlen(s);
+  if (strlen(s) < 149) {
+    for(int i = l + 1; i > cur; i--) {
+      s[i] = s[i - 1];
+    }
+    s[cur] = c;
   }
 }
 
@@ -425,29 +459,44 @@ void exec_edita_texto(estado_t *e)
 {
   // modo com necessidade de manter valores locais, implementado com
   //   laço próprio
-  char txt[200] = "";
-  strcpy(txt, e->nota_corrente->texto);
+  if (e->nota_corrente == NULL) {
+    muda_modo(e, move);
+  }
+  else {
+    char txt[200] = "";
+    strcpy(txt, e->nota_corrente->texto);
 
-  int cursor_edita_x = strlen(e->nota_corrente->texto);
+    int cursor_edita = strlen(e->nota_corrente->texto);
 
-  
-  while (e->modo == edita_texto) {
-    // desenha a tela
-    tela_edita_texto(e, txt);
+    
+    while (e->modo == edita_texto) {
+      // desenha a tela
+      tela_edita_texto(txt, cursor_edita);
 
-    // lê um comando
-    tecla_t tec = t_tecla();
+      // lê um comando
+      tecla_t tec = t_tecla();
 
-    // realiza uma ação conforme o comando lido
-    if (tec == T_ESC) {
-      muda_modo(e, move);
-    } else if (tec == T_BS) {
-      remove_ultimo_caractere(txt);
-    } else if (tec >= 'a' && tec <= 'z') {
-      insere_ultimo_caractere(txt, tec);
-    } else if (tec == T_ENTER) {
-      grava_texto(e, txt);
-      muda_modo(e, move);
+      // realiza uma ação conforme o comando lido
+      if (tec == T_ESC) {
+        muda_modo(e, move);
+      } else if (tec == T_BS) {
+        move_cursor_edita(&cursor_edita, -1, txt);
+        remove_caractere(txt, cursor_edita);
+      } else if ((tec >= 'a' && tec <= 'z') || (tec >= 'A' && tec <= 'Z')) {
+        insere_caractere(txt, tec, cursor_edita);
+        move_cursor_edita(&cursor_edita, 1, txt);
+      } else if (tec == T_ENTER) {
+        grava_texto(e, txt);
+        muda_modo(e, move);
+      } else if (tec == T_ESQUERDA) {
+        move_cursor_edita(&cursor_edita, -1, txt);
+      } else if (tec == T_DIREITA) {
+        move_cursor_edita(&cursor_edita, 1, txt);
+      } else if (tec ==  T_DEL) {
+        if (cursor_edita < strlen(txt)) {
+          remove_caractere(txt, cursor_edita);
+        }
+      }
     }
   }
 }
@@ -595,10 +644,12 @@ void exec_edita_cor (estado_t *e) {
         cor_atual = 0;
       }
     } else if (tec == T_ENTER) {
-      e->nota_corrente->cor.r = e->cor_edicao[0];
-      e->nota_corrente->cor.g = e->cor_edicao[1];
-      e->nota_corrente->cor.b = e->cor_edicao[2];
-      muda_modo(e, move);
+      if (e->nota_corrente != NULL) {
+        e->nota_corrente->cor.r = e->cor_edicao[0];
+        e->nota_corrente->cor.g = e->cor_edicao[1];
+        e->nota_corrente->cor.b = e->cor_edicao[2];
+        muda_modo(e, move);
+      }
     } else if (tec == T_ESC) {
       muda_modo(e, move);
     } else if (tec >= '0' && tec <= '9') {

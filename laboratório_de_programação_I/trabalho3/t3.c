@@ -69,7 +69,7 @@ void atualiza_nota_corrente (estado_t *e) {
   e->nota_corrente = NULL;
   for (int i = 0; i < e->n_notas; i++) {
     atual = e->notas[i].retangulo;
-    if (e->cursor_x >= atual.x && e->cursor_x <= (atual.x + atual.largura) && e->cursor_y >= atual.y && e->cursor_y < atual.y + atual.altura) {
+    if (e->cursor_x >= atual.x && e->cursor_x < (atual.x + atual.largura) && e->cursor_y >= atual.y && e->cursor_y < atual.y + atual.altura) {
       e->nota_corrente = &(e->notas[i]);
     }
   }
@@ -120,7 +120,7 @@ void nova_nota (estado_t *e) {
 
 
   nota *n = &(e->notas[e->n_notas - 1]);
-  strcpy(n->texto, "K");
+  strcpy(n->texto, "Nova nota");
   strcpy(n->etiqueta, "A00");
   n->cor.r = 120;
   n->cor.g = 120;
@@ -162,27 +162,17 @@ void desenha_ret(int l, int c, int dl, int dc,
                 int r, int g, int b,
                 char s[])
 {
-  // desenha o retângulo com espaços, selecionando a cor como fundo
   t_corfundo(r, g, b);
-  // imprime dl linhas com dc espaços cada
+
   for (int i = 0; i < dl; i++) {
-    // posiciona o cursor onde inicia essa linha do retângulo
     t_lincol(l + i, c);
-    // %10s imprime pelo menos 10 caracteres, completando com espaços
-    //   se a string for menor
-    // %.10s imprime no máximo 10 caracteres
-    // %10.10s imprime exatamente 10 caracteres
-    // se um número for substituído por '*', será pego no próximo argumento
-    printf("%*s", dc, ""); // imprime dc espaços (podia tbém ser um for)
+    printf("%*s", dc, ""); 
   }
 
-  // escreve o tamanho da tela no canto do retângulo
   int alt, larg;
   t_tamanho(&alt, &larg);
   t_lincol(l, c);
   printf("%dx%d", alt, larg);
-
-  // escreve s no centro do retângulo
 
   //linhas necessárias para escrever o texto no retangulo
   int lnt = (strlen(s) / dc) + 1;
@@ -216,7 +206,6 @@ void muda_modo(estado_t *e, modo_t novo_modo)
 }
 
 // modo "move"
-
 void tela_move(estado_t *e)
 {
   t_limpa();
@@ -274,24 +263,36 @@ void diminui_nota (estado_t *e, int dx, int dy, int dmov) {
         && dy == 0) {
           e->nota_corrente->retangulo.x  += dmov;
           e->nota_corrente->retangulo.largura += dx;
+          if (e->cursor_x < e->nota_corrente->retangulo.x) {
+            move_cursor(e, 1, 0);
+          }
+          if (e->cursor_x > e->nota_corrente->retangulo.x + e->nota_corrente->retangulo.largura - 1) {
+            move_cursor(e, -1, 0);
+          }
         }
     if(e->nota_corrente->retangulo.altura > 1
         && dx == 0) {
           e->nota_corrente->retangulo.y  += dmov;
           e->nota_corrente->retangulo.altura += dy;
+          if (e->cursor_y < e->nota_corrente->retangulo.y) {
+            move_cursor(e, 0, 1);
+          }
+          if (e->cursor_y > e->nota_corrente->retangulo.y + e->nota_corrente->retangulo.altura - 1) {
+            move_cursor(e, 0, -1);
+          }
         }
   }
 }
 
 void aumenta_nota (estado_t *e, int dx, int dy, int dmov) {
   if (e->nota_corrente != NULL) {
-    if(e->nota_corrente->retangulo.x + e->nota_corrente->retangulo.largura + 1 <= e->largura_fundo + 1
+    if(e->nota_corrente->retangulo.x + e->nota_corrente->retangulo.largura + dmov + 1 <= e->largura_fundo + 1
         && e->nota_corrente->retangulo.x + dmov >= 1
         && dy == 0) {
           e->nota_corrente->retangulo.x  += dmov;
           e->nota_corrente->retangulo.largura += dx;
         }
-    if(e->nota_corrente->retangulo.y + e->nota_corrente->retangulo.altura + 1 <= e->altura_fundo + 1
+    if(e->nota_corrente->retangulo.y + e->nota_corrente->retangulo.altura + dmov + 1 <= e->altura_fundo + 1
         && e->nota_corrente->retangulo.y + dmov >= 1
         && dx == 0) {
           e->nota_corrente->retangulo.y  += dmov;
@@ -303,11 +304,6 @@ void aumenta_nota (estado_t *e, int dx, int dy, int dmov) {
 void exec_move(estado_t *e, char file_name[])
 {
   atualiza_nota_corrente(e);
-  // modo sem necessidade de manter valores locais, implementado sem
-  //   laço próprio
-
-  // desenha a tela
-  //PAREI AQUI
   tela_move(e);
 
   // lê um comando
@@ -369,6 +365,10 @@ void exec_move(estado_t *e, char file_name[])
     case T_INS:
       inserir_nota_removida(e);
       break;
+    case 'p':
+      e->cursor_x = e->notas[e->n_notas - 1].retangulo.x;
+      e->cursor_y = e->notas[e->n_notas - 1].retangulo.y;
+      break;
     case 'i':
       mover_inicio(e);
       break;
@@ -391,6 +391,7 @@ void exec_move(estado_t *e, char file_name[])
       muda_modo(e, edita_cor);
       break;
     case T_ESC:
+      gravar_notas(e, file_name);
       muda_modo(e, fim);
       break;
     default: ;
@@ -398,7 +399,6 @@ void exec_move(estado_t *e, char file_name[])
 }
 
 // modo edita nota
-
 void tela_edita_texto(char texto[], int cur)
 {
   t_limpa();
@@ -411,14 +411,6 @@ void tela_edita_texto(char texto[], int cur)
 void move_cursor_edita (int *cur, int dx, char texto[]) {
   if ((*cur) + dx >= 0 && (*cur) + dx <= strlen(texto)) {
     (*cur) += dx;
-  }
-}
-
-void remove_ultimo_caractere(char s[])
-{
-  int l = strlen(s);
-  if (l > 0) {
-    s[l - 1] = '\0';
   }
 }
 
@@ -442,15 +434,6 @@ void insere_caractere(char s[], char c, int cur)
   }
 }
 
-void insere_ultimo_caractere(char s[], char c)
-{
-  int l = strlen(s);
-  if (strlen(s) < 149) {
-    s[l] = c;
-    s[l + 1] = '\0';
-  }
-}
-
 void grava_texto(estado_t *e, char txt[]) {
   strcpy(e->nota_corrente->texto, txt);
 }
@@ -458,8 +441,6 @@ void grava_texto(estado_t *e, char txt[]) {
 
 void exec_edita_texto(estado_t *e)
 {
-  // modo com necessidade de manter valores locais, implementado com
-  //   laço próprio
   if (e->nota_corrente == NULL) {
     muda_modo(e, move);
   }
@@ -481,9 +462,11 @@ void exec_edita_texto(estado_t *e)
       if (tec == T_ESC) {
         muda_modo(e, move);
       } else if (tec == T_BS) {
-        move_cursor_edita(&cursor_edita, -1, txt);
-        remove_caractere(txt, cursor_edita);
-      } else if ((tec >= 'a' && tec <= 'z') || (tec >= 'A' && tec <= 'Z')) {
+        if (cursor_edita > 0) {
+          move_cursor_edita(&cursor_edita, -1, txt);
+          remove_caractere(txt, cursor_edita);
+        }
+      } else if ((tec >= 32 && tec <= 126)) {
         insere_caractere(txt, tec, cursor_edita);
         move_cursor_edita(&cursor_edita, 1, txt);
       } else if (tec == T_ENTER) {
@@ -502,64 +485,58 @@ void exec_edita_texto(estado_t *e)
   }
 }
 
-// modo edita texto de busca
-void deleta_caracter (char txt[], int cur) {
-  int l = strlen(txt);
-  if (l > 0) {
-    for (int i = (l - cur); i < l; i++) {
-      txt[i] = txt[i+1];
-    }
-  } 
-}
-
+//modo edita_tbusca
 void tela_edita_tbusca (char txt[], int cursor) {
   t_limpa();
-  desenha_ret(2, 2, 20, 50, 10, 20, 30, txt);
-  t_lincol(2 + 20/2, 2 + 50/2 + (strlen(txt) + 1)/2 - cursor);
+  t_lincol(1, 1);
+  printf("Edite o texto de busca:");
+  t_lincol(2, 1);
+  printf("%s", txt);
+  t_lincol(2, cursor + 1);
 }
 
 void exec_edita_tbusca(estado_t *e)
 {
-  // modo com necessidade de manter valores locais, implementado com
-  //   laço próprio
   char txt[200] = "";
   strcpy(txt, e->texto_busca);
 
-  int cursor = 0;
+  int cursor = strlen(txt);
 
   
   while (e->modo == edita_tbusca) {
-    // desenha a tela
     tela_edita_tbusca(txt, cursor);
-
-    // lê um comando
     tecla_t tec = t_tecla();
 
-    // realiza uma ação conforme o comando lido
     if (tec == T_ESC) {
       strcpy(e->texto_busca, "");
       muda_modo(e, move);
     } else if (tec == T_BS) {
-      remove_ultimo_caractere(txt);
-    } else if ((tec >= 'a' && tec <= 'z') || (tec >= 'A' && tec <= 'Z')) {
-      insere_ultimo_caractere(txt, tec);
+      if (cursor > 0) {
+        cursor--;
+        remove_caractere(txt, cursor);
+      }
+    } else if (tec >= 32 && tec <= 126) {
+      insere_caractere(txt, tec, cursor);
+      cursor++;
     } else if (tec == T_ENTER) {
       strcpy(e->texto_busca, txt);
       muda_modo(e, move);
-    } else if (tec == T_DIREITA) {
+    } else if (tec == T_ESQUERDA) {
       if (cursor > 0) {
         cursor--;
       }
-    } else if (tec == T_ESQUERDA) {
+    } else if (tec == T_DIREITA) {
       if (cursor < strlen(txt)) {
         cursor++;
       }
     } else if (tec == T_DEL) {
-      deleta_caracter(txt, cursor);
+      if (cursor < strlen(txt)) {
+        remove_caractere(txt, cursor);
+      }
     } else if (tec == T_HOME) {
-      cursor = strlen(txt);
-    } else if (tec == T_END) {
       cursor = 0;
+    } else if (tec == T_END) {
+      cursor = strlen(txt);
     }
   }
 }
@@ -600,6 +577,11 @@ unsigned char soma_digito_cor (tecla_t tec, unsigned char c) {
 }
 
 void exec_edita_cor (estado_t *e) {
+  if (e->nota_corrente != NULL) {
+    e->cor_edicao[0] = e->nota_corrente->cor.r;
+    e->cor_edicao[1] = e->nota_corrente->cor.g;
+    e->cor_edicao[2] = e->nota_corrente->cor.b;
+  }
   int ultimo_foi_digito = 0;
   int cor_atual = 0;
   while (e->modo == edita_cor) {
@@ -608,14 +590,18 @@ void exec_edita_cor (estado_t *e) {
 
     if (tec == 'e' || tec == 'r') {
       cor_atual = 0;
+      ultimo_foi_digito = 0;
     } else if (tec == 'v' || tec == 'g') {
       cor_atual = 1;
+      ultimo_foi_digito = 0;
     } else if (tec == 'a' || tec == 'b') {
       cor_atual = 2;
+      ultimo_foi_digito = 0;
     } else if (tec == T_CIMA) {
       if (e->cor_edicao[cor_atual] < 255) {
         e->cor_edicao[cor_atual]++;
       }
+      ultimo_foi_digito = 0;
     } else if (tec == T_SHIFT_CIMA) {
       if (e->cor_edicao[cor_atual] <= 225) {
         e->cor_edicao[cor_atual] += 30;
@@ -623,10 +609,12 @@ void exec_edita_cor (estado_t *e) {
       else {
         e->cor_edicao[cor_atual] = 255;
       }
+      ultimo_foi_digito = 0;
     } else if (tec == T_BAIXO) {
       if (e->cor_edicao[cor_atual] > 0) {
         e->cor_edicao[cor_atual]--;
       }
+      ultimo_foi_digito = 0;
     } else if (tec == T_SHIFT_BAIXO) {
       if (e->cor_edicao[cor_atual] >= 30) {
         e->cor_edicao[cor_atual] -= 30;
@@ -634,16 +622,19 @@ void exec_edita_cor (estado_t *e) {
       else {
         e->cor_edicao[cor_atual] = 0;
       }
+      ultimo_foi_digito = 0;
     } else if (tec == T_ESQUERDA) {
       cor_atual--;
       if (cor_atual < 0) {
         cor_atual = 2;
       }
+      ultimo_foi_digito = 0;
     } else if (tec == T_DIREITA) {
       cor_atual++;
       if (cor_atual > 2) {
         cor_atual = 0;
       }
+      ultimo_foi_digito = 0;
     } else if (tec == T_ENTER) {
       if (e->nota_corrente != NULL) {
         e->nota_corrente->cor.r = e->cor_edicao[0];
@@ -676,9 +667,9 @@ void exec_edita_cor (estado_t *e) {
   }
 }
 
-//JEAN
-int ler_notas (FILE *arq, estado_t *e) {
-    int cont, c;
+int ler_notas (FILE *arq, FILE *erros, estado_t *e) {
+    int cont, c, tem_erro;
+    char str_erro[200];
     while (fscanf(arq, "%s %hhu %hhu %hhu %d %d %d %d ", 
         e->notas[e->n_notas - 1].etiqueta,
         &e->notas[e->n_notas - 1].cor.r,
@@ -694,28 +685,61 @@ int ler_notas (FILE *arq, estado_t *e) {
         //Serve para ignorar a primeira " da palavra
         fgetc(arq);
 
-
-        //AINDA PRECISA RESOLVER QUANDO UMA LINHA TEM MULTIPLAS ""
+        tem_erro = 0;
         while ((c = fgetc(arq)) != '"' && 
-        cont < e->notas[e->n_notas - 1].retangulo.largura * e->notas[e->n_notas-1].retangulo.altura)
+        cont < e->notas[e->n_notas - 1].retangulo.largura * e->notas[e->n_notas-1].retangulo.altura
+        && cont < 149)
         {
-            e->notas[e->n_notas - 1].texto[cont] = c;
-            cont++;
+            if (c >= 32 && c <= 126) {
+              e->notas[e->n_notas - 1].texto[cont] = c;
+              cont++;
+            }
+            else {
+              tem_erro = 1;
+            }
         }
         e->notas[e->n_notas - 1].texto[cont] = '\0';
-        
+
+        str_erro[0] = c;
+        cont = 1;
+
         // Serve para ignorar texto sobrando "inválido"
-        while((c = fgetc(arq)) != '\n' && c != EOF) {};
+        while((c = fgetc(arq)) != '\n' && c != EOF) {
+          tem_erro = 1;
+          str_erro[cont] = c;
+          cont++;
+        };
+        str_erro[cont] = '\0';
+        if (tem_erro) {
+          fprintf(erros, "%s %hhu %hhu %hhu %d %d %d %d \"%s%s\n",
+                e->notas[e->n_notas - 1].etiqueta,
+                e->notas[e->n_notas - 1].cor.r,
+                e->notas[e->n_notas - 1].cor.g,
+                e->notas[e->n_notas - 1].cor.b,
+                e->notas[e->n_notas - 1].retangulo.x,
+                e->notas[e->n_notas - 1].retangulo.y,
+                e->notas[e->n_notas - 1].retangulo.largura,
+                e->notas[e->n_notas - 1].retangulo.altura,
+                e->notas[e->n_notas - 1].texto,
+                str_erro);
+        }
         
         if(!realoca_memoria(e, 1)) return -1;
     }
-
+    fprintf(erros, "\n");
     if(!realoca_memoria(e, -1)) return -1;
     return 0;
 }
 
 
 int main (void) {
+    // Arquivo de erros
+    FILE *erros = fopen("erros.txt", "a");
+    if (erros == NULL) {
+      printf("Não consegui abrir o arquivo de erros!\n");
+      return -1;
+    }
+    fprintf(erros, "Erros: \n");
 
     // Le o arquivo
     char file_name[30];
@@ -727,14 +751,14 @@ int main (void) {
         return -1;
     }
 
-    estado_t estado = { move, NULL, 1, 5, 5, NULL, {0}, 0, "", 70, 40, {0}};
+    estado_t estado = { move, NULL, 1, 1, 1, NULL, {0}, 0, "", 70, 40, {0}};
     estado.notas = malloc(sizeof(nota));
     if (estado.notas == NULL) {
       printf("Não foi possível alocar memória.\n");
       return -1;
     }
 
-    int conseguiu_ler = ler_notas(arq, &estado);
+    int conseguiu_ler = ler_notas(arq, erros, &estado);
     if (conseguiu_ler == -1) {
       free(estado.notas);
         return -1;
@@ -766,6 +790,7 @@ int main (void) {
     // retorna a tela ao modo normal
     t_fim();
     free(estado.notas);
+    fclose(erros);
 
     //Escreve as notas atualizadas no arquivo
 }

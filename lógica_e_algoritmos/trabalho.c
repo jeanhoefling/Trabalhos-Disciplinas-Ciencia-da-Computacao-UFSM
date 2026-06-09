@@ -26,10 +26,25 @@
     #define S_DIREITA 15
     #define S_ESQUERDA 16
 
-    int vidas = 1, chave = 0, vidas_mapa = 1, setas_mapa = 1;
-
     //                0    1     2     3     4     5     6     7     8     9     10    11    12    13    14    15    16
     int ascii[17] = { 0, 9787, 9785, 9553, 9552, 9639, 9556, 9559, 9562, 9565, 9829, 9919, 9635, 9650, 9660, 9658, 9668 };
+
+    typedef struct {
+        char nome[10];
+        int linha;
+        int coluna;
+        int dlinha;
+        int dcoluna;
+    } personagem;
+
+    typedef struct {
+        int vidas;
+        int chave;
+        int vidas_mapa;
+        int setas_mapa;
+        int rodada;
+        int venceu;
+    } estado_jogo;
 
     void limparTela() {
         system("clear");
@@ -40,7 +55,7 @@
         wprintf(L"%lc", caractere);
     }
 
-    void imprimeMatriz(int mat[LINHAS][COLUNAS], int rodadas) {
+    void imprimeMatriz(int mat[LINHAS][COLUNAS], estado_jogo estado) {
         int i, j;
 
         limparTela();
@@ -67,21 +82,16 @@
 
             wprintf(L"\n");
         }
-        wprintf(L"Vidas: %i\n", vidas);
-        if (chave == 0) {
+        wprintf(L"Vidas: %i\n", estado.vidas);
+        if (estado.chave == 0) {
             wprintf(L"Chave: NÃO\n");
         }
         else{
             wprintf(L"Chave: SIM\n");
         }
-        wprintf(L"Rodadas: %i\n", rodadas);
+        wprintf(L"Rodadas: %i\n", estado.rodada);
     }
 
-    typedef struct {
-        char nome[10];
-        int linha;
-        int coluna;
-    } personagem;
 
     // Função para comparar strings (retorna 1 se forem, 0 se não forem)
     int compara_string (char s1[], char s2[]) {
@@ -95,28 +105,28 @@
         return 0;
     }
 
-    // Essa função move retorna 1 se o movimento é válido e 0 se não for
-    int move (int matriz[LINHAS][COLUNAS], personagem *personagem, int dlinha, int dcoluna) {
-        int proxima_posicao = matriz[personagem->linha + dlinha][personagem->coluna + dcoluna];
+    // Essa função move retorna 1 se o movimento é válido, 0 se não for, 2 se venceu o jogo
+    int move (int matriz[LINHAS][COLUNAS], personagem *personagem, estado_jogo *estado) {
+        int proxima_posicao = matriz[personagem->linha + personagem->dlinha][personagem->coluna + personagem->dcoluna];
         if (proxima_posicao == VAZIO || proxima_posicao == VIDA || proxima_posicao == CHAVE || 
             proxima_posicao == S_CIMA || proxima_posicao == S_BAIXO || proxima_posicao == S_DIREITA || proxima_posicao == S_ESQUERDA) {
             int new_dlinha = 0, new_dcoluna = 0;
             if (proxima_posicao == VIDA) {
-                vidas_mapa--;
+                estado->vidas_mapa--;
                 if(compara_string(personagem->nome, "jogador")) {
-                    vidas++;
+                    estado->vidas++;
                 }
             }
             else if (proxima_posicao == CHAVE) {
                 if (compara_string(personagem->nome, "jogador")) {
-                    chave++;
+                    estado->chave++;
                 }
                 else {
                     return 0;
                 }
             }
             else if (proxima_posicao == S_CIMA || proxima_posicao == S_BAIXO || proxima_posicao == S_DIREITA || proxima_posicao == S_ESQUERDA) {
-                setas_mapa--;
+                estado->setas_mapa--;
                 if (proxima_posicao == S_CIMA) {
                     new_dlinha = -1;
                 }
@@ -130,57 +140,57 @@
                     new_dcoluna = -1;
                 }
             }
-            matriz[personagem->linha + dlinha][personagem->coluna + dcoluna] = matriz[personagem->linha][personagem->coluna];
+            matriz[personagem->linha + personagem->dlinha][personagem->coluna + personagem->dcoluna] = matriz[personagem->linha][personagem->coluna];
             matriz[personagem->linha][personagem->coluna] = VAZIO;
-            personagem->coluna = personagem->coluna + dcoluna;
-            personagem->linha = personagem->linha + dlinha;
-            if (!(new_dcoluna == 0 && new_dlinha == 0)) {
-                int conseguiu_move_seta = move(matriz, personagem, new_dlinha, new_dcoluna);
-                if (conseguiu_move_seta != 0) {
-                    return conseguiu_move_seta;
-                }
+            personagem->coluna = personagem->coluna + personagem->dcoluna;
+            personagem->linha = personagem->linha + personagem->dlinha;
+            if (new_dlinha != 0 || new_dcoluna != 0) {
+                personagem->dlinha = new_dlinha;
+                personagem->dcoluna = new_dcoluna;
             }
             return 1;
         }
-        else if (proxima_posicao == SAIDA && compara_string(personagem->nome, "jogador") && chave > 0) {
-            return 2;
+        else if (proxima_posicao == SAIDA && compara_string(personagem->nome, "jogador") && estado->chave > 0) {
+            estado->venceu = 1;
+            return 1;
         }
-        else if (proxima_posicao == JOGADOR) {
-            vidas--;
-            if (vidas == 0) {
-                matriz[personagem->linha + dlinha][personagem->coluna + dcoluna] = matriz[personagem->linha][personagem->coluna];
+        else if (proxima_posicao == JOGADOR || proxima_posicao == INIMIGO) {
+            estado->vidas--;
+            if (estado->vidas == 0) {
+                matriz[personagem->linha + personagem->dlinha][personagem->coluna + personagem->dcoluna] = INIMIGO;
                 matriz[personagem->linha][personagem->coluna] = VAZIO;
+                return 1;
             }
-            return 1;
+            return 0;
         }
         else {
             return 0;
         }
     }
 
-    // Essa função retorna 1 se o personagem venceu o jogo, 0 se ainda não
-    int move_personagem (int matriz[LINHAS][COLUNAS], personagem *personagem) {
-        int conseguiu_movimentar = 0, direcao;
+    void move_personagem (int matriz[LINHAS][COLUNAS], personagem *personagem, estado_jogo *estado) {
+        int conseguiu_movimentar = move(matriz, personagem, estado);
+        int direcao;
         while (!(conseguiu_movimentar)) {
+            personagem->dlinha = 0;
+            personagem->dcoluna = 0;
             direcao = rand() % 10000;
             if (direcao < 2500) {
-                conseguiu_movimentar = move(matriz, personagem, -1, 0);
+                personagem->dlinha = 1;
+                conseguiu_movimentar = move(matriz, personagem, estado);
             }
             else if (direcao < 5000) {
-                conseguiu_movimentar = move(matriz, personagem, 1, 0);
+                personagem->dlinha = -1;
+                conseguiu_movimentar = move(matriz, personagem, estado);
             }
             else if (direcao < 7500) {
-                conseguiu_movimentar = move(matriz, personagem, 0, -1);
+                personagem->dcoluna = 1;
+                conseguiu_movimentar = move(matriz, personagem, estado);
             }
             else {
-                conseguiu_movimentar = move(matriz, personagem, 0, 1);
+                personagem->dcoluna = -1;
+                conseguiu_movimentar = move(matriz, personagem, estado);
             }
-        }
-        if (conseguiu_movimentar == 2) {
-            return 1;
-        }
-        else {
-            return 0;
         }
     }
 
@@ -191,6 +201,16 @@
             linha = (rand() % (LINHAS - 2)) + 1;
             coluna = (rand() % (COLUNAS - 2)) + 1;
         } while (matriz[linha][coluna] != VAZIO);
+        posicao[0] = linha;
+        posicao[1] = coluna;
+    }
+
+    void gerar_posicao_saida (int posicao[2]) {
+        int linha, coluna;
+        do {
+            linha = 1 + (rand() % 9);
+            coluna = (rand() % 2) * 11;
+        } while (linha == 5 && coluna == 0 || (linha == 4 && coluna == 11));
         posicao[0] = linha;
         posicao[1] = coluna;
     }
@@ -216,55 +236,59 @@
         };
 
         // Definindo a posição inicial do jogador e do inimigo
-        personagem jogador = {"jogador", 1, 1}; 
-        personagem inimigo = {"inimigo", 9 , 10};
+        personagem jogador = {"jogador", 1, 1, 0, -1}; 
+        personagem inimigo = {"inimigo", 9 , 10, 0, 1};
 
         personagem *ptr_jogador = &jogador;
         personagem *ptr_inimigo = &inimigo;
 
-        int rodada = 0;
+        estado_jogo estado = { 1, 0, 1, 1, 0, 0};
+        estado_jogo *ptr_estado = &estado;
 
         mat[jogador.linha][jogador.coluna] = JOGADOR;
         mat[inimigo.linha][inimigo.coluna] = INIMIGO;
         int posicao[2];
         gerar_posicao(mat, posicao);
         mat[posicao[0]][posicao[1]] = CHAVE;
-        mat[1 + (rand() % 9)][(rand() % 2) * 11] = SAIDA; 
+        gerar_posicao_saida(posicao);
+        mat[posicao[0]][posicao[1]] = SAIDA; 
+        
 
-        int venceu = 0;
-
-        while(rodada < 10000 && !(venceu) && vidas > 0) {
-            if (rodada % 75 == 0 && vidas_mapa <= 3 && vidas < 3) {
+        while(estado.rodada < 10000 && !(estado.venceu) && estado.vidas > 0) {
+            if (estado.rodada % 150 == 0 && estado.vidas_mapa <= 3 && estado.vidas < 3) {
                 gerar_posicao(mat, posicao);
                 mat[posicao[0]][posicao[1]] = VIDA;
-                vidas_mapa++;
+                estado.vidas_mapa++;
             }
-            if (rodada % 150 == 0 && setas_mapa <= 3) {
+            if (estado.rodada % 100 == 0 && estado.setas_mapa <= 3) {
                 gerar_posicao(mat, posicao);
                 mat[posicao[0]][posicao[1]] = rand() % 4 + 13;
-                setas_mapa++;
+                estado.setas_mapa++;
             }
-            imprimeMatriz(mat, rodada);
+            imprimeMatriz(mat, estado);
             usleep(0.1 * 1000000);
-            venceu = move_personagem(mat, ptr_jogador);
+            move_personagem(mat, ptr_jogador, ptr_estado);
 
             /* Esse imprime matriz com sleep adicional é importante pra entender a situação do tabuleiro após o movimento de um dos personagens, enquanto o outro 
                ainda não movimentou */
-            imprimeMatriz(mat, rodada);
+            imprimeMatriz(mat, estado);
             usleep(0.1 * 1000000);
 
-            move_personagem(mat, ptr_inimigo);
-            rodada++;
+            if (estado.vidas == 0) {
+                break;
+            }
+            move_personagem(mat, ptr_inimigo, ptr_estado);
+            estado.rodada++;
         }
 
-        imprimeMatriz(mat, rodada);
-        if (venceu) {
+        imprimeMatriz(mat, estado);
+        if (estado.venceu) {
             wprintf(L"Parabéns, você venceu!!!\n");
         }
-        else if (rodada >= 10000) {
+        else if (estado.rodada >= 10000) {
             wprintf(L"Que pena, o limite de rodadas foi excedido e você perdeu...\n");
         }
-        else if (vidas == 0) {
+        else if (estado.vidas == 0) {
             wprintf(L"Que pena, o inimigo te pegou e você perdeu...\n");
         }
 

@@ -25,7 +25,7 @@ typedef struct {
     char etiqueta[4];
 } nota;
 
-typedef enum { move, edita_texto, fim, edita_tbusca, edita_cor } modo_t;
+typedef enum { principal, edita_texto, fim, edita_tbusca, edita_cor } modo_t;
 
 typedef struct {
   modo_t modo;
@@ -158,24 +158,36 @@ void inserir_nota_removida (estado_t *e) {
 
 
 // desenha um retângulo colorido com texto dentro
-void desenha_ret(int l, int c, int dl, int dc,
+void desenha_ret(int y, int x, int altura, int largura,
                 int r, int g, int b,
                 char s[])
 {
   t_corfundo(r, g, b);
 
-  for (int i = 0; i < dl; i++) {
-    t_lincol(l + i, c);
-    printf("%*s", dc, ""); 
+  for (int i = 0; i < altura; i++) {
+    t_lincol(y + i, x);
+    printf("%*s", largura, ""); 
   }
 
-  int alt, larg;
-  t_tamanho(&alt, &larg);
-  t_lincol(l, c);
-  printf("%dx%d", alt, larg);
+  if (largura >= 3) {
+    t_lincol(y, x);
+    printf("%dx%d", altura, largura);
+  }
 
+
+  // verifica se o texto é maior que o espaço da nota
+  int texto_maior_que_nota;
   //linhas necessárias para escrever o texto no retangulo
-  int lnt = (strlen(s) / dc) + 1;
+  int lnt;
+
+  if (strlen(s) > largura * altura) {
+    texto_maior_que_nota = 1;
+    lnt = altura;
+  }
+  else {
+    texto_maior_que_nota = 0;
+    lnt = (strlen(s) / largura) == ((float) strlen(s) / largura) ? strlen(s)/largura : strlen(s)/largura + 1;
+  }
 
   if ((r + g + b)/3 < 120) {
     t_cortexto(255, 255, 255);
@@ -186,17 +198,27 @@ void desenha_ret(int l, int c, int dl, int dc,
 
   int cont = 0;
   for (int i = 0; i < lnt - 1; i++) {
-    t_lincol(l + dl/2 - lnt/2 + i, c);
-    for (int j = cont; j < cont + dc; j++) {
+    t_lincol(y + altura/2 - lnt/2 + i, x);
+    for (int j = cont; j < cont + largura; j++) {
       printf("%c", s[j]);
     }
-    cont += dc;
+    cont += largura;
   }
 
   //REVER BEM ESSE TLINCOL, FUNCIONA MAS TA ESTRANHO
-  t_lincol(l + dl/2 + lnt/2 - 1 + lnt%2, c + dc/2 - (strlen(s) - cont)/2);
+
+  if (texto_maior_que_nota) {
+    t_lincol(y + altura/2 + lnt/2 - 1 + lnt%2, x);
+  }
+  else {
+    t_lincol(y + altura/2 + lnt/2 - 1 + lnt%2, x + largura/2 - (strlen(s) - cont)/2);
+  }
+
   for (int i = cont; i < strlen(s); i++) {
     printf("%c", s[i]);
+    if (i >= largura * altura - 1) {
+      break;
+    }
   }
 }
 
@@ -206,7 +228,7 @@ void muda_modo(estado_t *e, modo_t novo_modo)
 }
 
 // modo "move"
-void tela_move(estado_t *e)
+void tela_principal(estado_t *e)
 {
   t_limpa();
   desenha_ret(1, 1, e->altura_fundo, e->largura_fundo, 10, 20, 30, "fundo");
@@ -228,7 +250,6 @@ void tela_move(estado_t *e)
     t_lincol(e->nota_corrente->retangulo.y, e->nota_corrente->retangulo.x + e->nota_corrente->retangulo.largura - 1);
     printf("c");
   }
-  // põe o cursor no centro do retângulo
   t_lincol(e->cursor_y, e->cursor_x);
 }
 
@@ -301,10 +322,10 @@ void aumenta_nota (estado_t *e, int dx, int dy, int dmov) {
   }
 }
 
-void exec_move(estado_t *e, char file_name[])
+void exec_principal(estado_t *e, char file_name[])
 {
   atualiza_nota_corrente(e);
-  tela_move(e);
+  tela_principal(e);
 
   // lê um comando
   tecla_t tec = t_tecla();
@@ -394,7 +415,8 @@ void exec_move(estado_t *e, char file_name[])
       gravar_notas(e, file_name);
       muda_modo(e, fim);
       break;
-    default: ;
+    default: 
+      break;
   }
 }
 
@@ -442,7 +464,7 @@ void grava_texto(estado_t *e, char txt[]) {
 void exec_edita_texto(estado_t *e)
 {
   if (e->nota_corrente == NULL) {
-    muda_modo(e, move);
+    muda_modo(e, principal);
   }
   else {
     char txt[200] = "";
@@ -460,7 +482,7 @@ void exec_edita_texto(estado_t *e)
 
       // realiza uma ação conforme o comando lido
       if (tec == T_ESC) {
-        muda_modo(e, move);
+        muda_modo(e, principal);
       } else if (tec == T_BS) {
         if (cursor_edita > 0) {
           move_cursor_edita(&cursor_edita, -1, txt);
@@ -471,7 +493,7 @@ void exec_edita_texto(estado_t *e)
         move_cursor_edita(&cursor_edita, 1, txt);
       } else if (tec == T_ENTER) {
         grava_texto(e, txt);
-        muda_modo(e, move);
+        muda_modo(e, principal);
       } else if (tec == T_ESQUERDA) {
         move_cursor_edita(&cursor_edita, -1, txt);
       } else if (tec == T_DIREITA) {
@@ -509,7 +531,7 @@ void exec_edita_tbusca(estado_t *e)
 
     if (tec == T_ESC) {
       strcpy(e->texto_busca, "");
-      muda_modo(e, move);
+      muda_modo(e, principal);
     } else if (tec == T_BS) {
       if (cursor > 0) {
         cursor--;
@@ -520,7 +542,7 @@ void exec_edita_tbusca(estado_t *e)
       cursor++;
     } else if (tec == T_ENTER) {
       strcpy(e->texto_busca, txt);
-      muda_modo(e, move);
+      muda_modo(e, principal);
     } else if (tec == T_ESQUERDA) {
       if (cursor > 0) {
         cursor--;
@@ -640,10 +662,10 @@ void exec_edita_cor (estado_t *e) {
         e->nota_corrente->cor.r = e->cor_edicao[0];
         e->nota_corrente->cor.g = e->cor_edicao[1];
         e->nota_corrente->cor.b = e->cor_edicao[2];
-        muda_modo(e, move);
+        muda_modo(e, principal);
       }
     } else if (tec == T_ESC) {
-      muda_modo(e, move);
+      muda_modo(e, principal);
     } else if (tec >= '0' && tec <= '9') {
       if (!ultimo_foi_digito) {
         e->cor_edicao[cor_atual] = tec - '0';
@@ -662,7 +684,7 @@ void exec_edita_cor (estado_t *e) {
           e->notas[i].cor.b = e->cor_edicao[2];
         }
       }
-      muda_modo(e, move);
+      muda_modo(e, principal);
     }
   }
 }
@@ -686,8 +708,7 @@ int ler_notas (FILE *arq, FILE *erros, estado_t *e) {
         fgetc(arq);
 
         tem_erro = 0;
-        while ((c = fgetc(arq)) != '"' && 
-        cont < e->notas[e->n_notas - 1].retangulo.largura * e->notas[e->n_notas-1].retangulo.altura
+        while ((c = fgetc(arq)) != '"'
         && cont < 149)
         {
             if (c >= 32 && c <= 126) {
@@ -751,7 +772,7 @@ int main (void) {
         return -1;
     }
 
-    estado_t estado = { move, NULL, 1, 1, 1, NULL, {0}, 0, "", 70, 40, {0}};
+    estado_t estado = { principal, NULL, 1, 1, 1, NULL, {0}, 0, "", 150, 40, {0}};
     estado.notas = malloc(sizeof(nota));
     if (estado.notas == NULL) {
       printf("Não foi possível alocar memória.\n");
@@ -761,7 +782,7 @@ int main (void) {
     int conseguiu_ler = ler_notas(arq, erros, &estado);
     if (conseguiu_ler == -1) {
       free(estado.notas);
-        return -1;
+      return -1;
     }
 
     fclose(arq);
@@ -770,8 +791,8 @@ int main (void) {
     t_inicia();
     while (estado.modo != fim) {
         switch (estado.modo) {
-        case move:
-            exec_move(&estado, file_name);
+        case principal:
+            exec_principal(&estado, file_name);
             break;
         case edita_texto:
             exec_edita_texto(&estado);
@@ -787,10 +808,7 @@ int main (void) {
         }
         
     }
-    // retorna a tela ao modo normal
     t_fim();
     free(estado.notas);
     fclose(erros);
-
-    //Escreve as notas atualizadas no arquivo
 }

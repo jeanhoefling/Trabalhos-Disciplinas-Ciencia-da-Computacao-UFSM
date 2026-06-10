@@ -210,7 +210,7 @@
         do {
             linha = 1 + (rand() % 9);
             coluna = (rand() % 2) * 11;
-        } while (linha == 5 && coluna == 0 || (linha == 4 && coluna == 11));
+        } while ((linha == 5 && coluna == 0) || (linha == 4 && coluna == 11));
         posicao[0] = linha;
         posicao[1] = coluna;
     }

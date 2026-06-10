@@ -281,7 +281,7 @@ int main() {
     mat[posicao[0]][posicao[1]] = SAIDA; 
     
 
-    while(estado.rodada < 10000 && !(estado.venceu) && estado.vidas > 0) {
+    while(estado.rodada < 1000 && !(estado.venceu) && estado.vidas > 0) {
         if (estado.rodada % 150 == 0 && estado.vidas_mapa <= 3 && estado.vidas < 3) {
             gerar_posicao(mat, posicao);
             mat[posicao[0]][posicao[1]] = VIDA;
@@ -293,13 +293,13 @@ int main() {
             estado.setas_mapa++;
         }
         imprimeMatriz(mat, estado);
-        usleep(0.1 * 1000000);
+        usleep(0.5 * 1000000);
         move_personagem(mat, ptr_jogador, ptr_estado);
 
         /* Esse imprime matriz com sleep adicional é importante pra entender a situação do tabuleiro após o movimento de um dos personagens, enquanto o outro 
             ainda não movimentou */
         imprimeMatriz(mat, estado);
-        usleep(0.1 * 1000000);
+        usleep(0.5 * 1000000);
 
         if (estado.vidas == 0) {
             break;
@@ -312,7 +312,7 @@ int main() {
     if (estado.venceu) {
         wprintf(L"Parabéns, você venceu!!!\n");
     }
-    else if (estado.rodada >= 10000) {
+    else if (estado.rodada >= 1000) {
         wprintf(L"Que pena, o limite de rodadas foi excedido e você perdeu...\n");
     }
     else if (estado.vidas == 0) {

@@ -25,7 +25,7 @@ typedef struct {
     char etiqueta[4];
 } nota;
 
-typedef enum { principal, edita_texto, fim, edita_tbusca, edita_cor } modo_t;
+typedef enum { principal, edita_texto, fim, edita_tbusca, edita_cor, edita_etiqueta, edita_ebusca } modo_t;
 
 typedef struct {
   modo_t modo;
@@ -40,12 +40,14 @@ typedef struct {
   nota nota_removida;
   int existe_nota_removida;
 
+  char etiqueta_busca[4];
   char texto_busca[50];
 
   int largura_fundo;
   int altura_fundo;
 
   unsigned char cor_edicao[3];
+  char etiqueta_edicao[4];
 } estado_t;
 
 // FUNÇÕES DE UTILIDADE GERAL
@@ -380,7 +382,7 @@ void tela_principal(estado_t *e)
   t_limpa();
   desenha_ret(1, 1, e->altura_fundo, e->largura_fundo, 10, 20, 30, "fundo");
   for (int i = 0; i < e->n_notas; i++) {
-    if (strcmp(e->texto_busca, "") == 0 || strstr(e->notas[i].texto, e->texto_busca)) {
+    if (strstr(e->notas[i].texto, e->texto_busca) && strstr(e->notas[i].etiqueta, e->etiqueta_busca)) {
       desenha_ret(e->notas[i].retangulo.y, e->notas[i].retangulo.x, e->notas[i].retangulo.altura, e->notas[i].retangulo.largura,
                   e->notas[i].cor.r, e->notas[i].cor.g, e->notas[i].cor.b, e->notas[i].texto);
       }
@@ -482,8 +484,14 @@ void exec_principal(estado_t *e, char file_name[])
     case 'b':
       muda_modo(e, edita_tbusca);
       break;
+    case 'B':
+      muda_modo(e, edita_ebusca);
+      break;
     case 'e':
       muda_modo(e, edita_texto);
+      break;
+    case 't':
+      muda_modo(e, edita_etiqueta);
       break;
     case 'c':
       muda_modo(e, edita_cor);
@@ -640,6 +648,116 @@ void exec_edita_tbusca(estado_t *e)
   }
 }
 
+
+// FUNÇÕES EDITA ETIQUETA DE BUSCA
+
+void tela_edita_ebusca (char txt[], int cursor) {
+  t_limpa();
+  t_lincol(1, 1);
+  printf("Edite a etiqueta de busca:");
+  t_lincol(2, 1);
+  printf("%s", txt);
+  t_lincol(2, cursor + 1);
+}
+
+void exec_edita_ebusca(estado_t *e)
+{
+  char txt[4] = "";
+  strcpy(txt, e->etiqueta_busca);
+
+  int cursor;
+
+  
+  while (e->modo == edita_ebusca) {
+    cursor = strlen(txt);
+    tela_edita_ebusca(txt, cursor);
+    tecla_t tec = t_tecla();
+
+    if (tec == T_ESC) {
+      strcpy(e->etiqueta_busca, "");
+      muda_modo(e, principal);
+    } else if (tec == T_BS) {
+      remove_caractere(txt, cursor);
+    } else if ((tec >= 'A' && tec <= 'Z') || (tec >= '0' && tec <= '9')) {
+      if (strlen(txt) < 3) {
+         insere_caractere(txt, tec, cursor);
+      }
+    } else if (tec == T_ENTER) {
+      strcpy(e->etiqueta_busca, txt);
+      muda_modo(e, principal);
+    } 
+  }
+}
+
+// FUNÇÕES EDITA ETIQUETA DE EDICAO
+
+/* Essa função serve tanto para edição de cor quanto de etiqueta, ela é usada no caso em que se deseja
+alterar todas as notas visiveis. Se c_e for 1 altera as cores, se for 2 altera etiquetas. */
+void altera_notas_visiveis(estado_t *e, int c_e) {
+  for (int i = 0; i < e->n_notas; i++) {
+    if (strstr(e->notas[i].texto, e->texto_busca) && strstr(e->notas[i].etiqueta, e->etiqueta_busca)) {
+        if (c_e == 2) {
+          strcpy(e->notas[i].etiqueta, e->etiqueta_edicao);
+        }
+        else if (c_e == 1) {
+          e->notas[i].cor.r = e->cor_edicao[0];
+          e->notas[i].cor.g = e->cor_edicao[1];
+          e->notas[i].cor.b = e->cor_edicao[2];
+        }
+      }
+  }
+}
+
+void tela_edita_etiqueta (char txt[], int cursor) {
+  t_limpa();
+  t_lincol(1, 1);
+  printf("Edite a etiqueta:");
+  t_lincol(2, 1);
+  printf("%s", txt);
+  t_lincol(2, cursor + 1);
+}
+
+void exec_edita_etiqueta(estado_t *e)
+{
+  char txt[4] = "";
+  strcpy(txt, e->etiqueta_edicao);
+  
+  if (e->nota_corrente != NULL) {
+    strcpy(txt, e->nota_corrente->etiqueta);
+  }
+
+  int cursor;
+
+  
+  while (e->modo == edita_etiqueta) {
+    cursor = strlen(txt);
+    tela_edita_etiqueta(txt, cursor);
+    tecla_t tec = t_tecla();
+
+    if (tec == T_ESC) {
+      muda_modo(e, principal);
+    } else if (tec == T_BS) {
+      remove_caractere(txt, cursor);
+    } else if ((tec >= 'A' && tec <= 'Z') || (tec >= '0' && tec <= '9')) {
+      if (strlen(txt) < 3) {
+         insere_caractere(txt, tec, cursor);
+      }
+    } else if (tec == T_ENTER) {
+      if (strlen(txt) == 3) {
+        strcpy(e->etiqueta_edicao, txt);
+        if (e->nota_corrente != NULL) {
+          strcpy(e->nota_corrente->etiqueta, txt);
+        }
+        muda_modo(e, principal);
+      }
+    } else if (tec == T_SHIFT_DIREITA) { // Usei shift+direita porque não tinha shift+enter
+      strcpy(e->etiqueta_edicao, txt);
+      altera_notas_visiveis(e, 2);
+      muda_modo(e, principal);
+    }
+  }
+}
+
 // FUNÇÕES EDITA COR
 
 unsigned char soma_digito_cor (tecla_t tec, unsigned char c) {
@@ -756,13 +874,7 @@ void exec_edita_cor (estado_t *e) {
     }
     //AQUI UTILIZEI SHIFT+DIREITA PORQUE NÃO HAVIA SHIFT+ENTER
     else if (tec == T_SHIFT_DIREITA) {
-      for (int i = 0; i < e->n_notas; i++) {
-        if (strstr(e->notas[i].texto, e->texto_busca)) {
-          e->notas[i].cor.r = e->cor_edicao[0];
-          e->notas[i].cor.g = e->cor_edicao[1];
-          e->notas[i].cor.b = e->cor_edicao[2];
-        }
-      }
+      altera_notas_visiveis(e, 1);
       muda_modo(e, principal);
     }
   }
@@ -874,7 +986,7 @@ int main (void) {
         return -1;
     }
 
-    estado_t estado = { principal, NULL, 0, 1, 1, NULL, {0}, 0, "", 150, 40, {0}};
+    estado_t estado = { principal, NULL, 0, 1, 1, NULL, {0}, 0, "", "", 150, 40, {0}, ""};
 
     int conseguiu_ler = ler_notas(arq, erros, &estado);
     if (conseguiu_ler == -1) {
@@ -899,6 +1011,12 @@ int main (void) {
             break;
         case edita_cor:
             exec_edita_cor(&estado);
+            break;
+        case edita_ebusca:
+            exec_edita_ebusca(&estado);
+            break;
+        case edita_etiqueta:
+            exec_edita_etiqueta(&estado);
             break;
         default:
             break;

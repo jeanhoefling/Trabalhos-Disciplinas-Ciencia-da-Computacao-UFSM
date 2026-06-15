@@ -164,7 +164,7 @@ void move_personagem (int matriz[LINHAS][COLUNAS], personagem *personagem, estad
 
     /* Isso é importante para dar uma "chance" de aleatoriedade no movimento, porque se
     ele seguir o padrão sempre, há posições no mapa que serão inacessiveis */
-    if (estado->rodada % 10 == 0 && !(personagem->ultimo_seta)) {
+    if (estado->rodada % 8 == 0 && !(personagem->ultimo_seta)) {
         conseguiu_movimentar = 0;
     }
 

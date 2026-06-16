@@ -79,7 +79,7 @@ int realoca_memoria(estado_t *e, int dmemoria) {
 // desenha um retângulo colorido com texto dentro
 void desenha_ret(int y, int x, int altura, int largura,
                 int r, int g, int b,
-                char s[])
+                char s[], char e[])
 {
   t_corfundo(r, g, b);
 
@@ -90,7 +90,7 @@ void desenha_ret(int y, int x, int altura, int largura,
 
   if (largura >= 3) {
     t_lincol(y, x);
-    printf("%dx%d", altura, largura);
+    printf("%s", e);
   }
 
 
@@ -153,7 +153,7 @@ void atualiza_nota_corrente (estado_t *e) {
   retangulo atual;
   e->nota_corrente = NULL;
   for (int i = 0; i < e->n_notas; i++) {
-    if (!(strstr(e->notas[i].texto, e->texto_busca))) {
+    if (!(strstr(e->notas[i].texto, e->texto_busca)) || !(strstr(e->notas[i].etiqueta, e->etiqueta_busca))) {
       continue;
     }
     atual = e->notas[i].retangulo;
@@ -173,7 +173,6 @@ void mover_inicio (estado_t *e) {
     e->notas[i] = e->notas[i - 1];
   }
   e->notas[0] = tmp;
-  atualiza_nota_corrente(e);
 }
 
 void mover_fim (estado_t *e) {
@@ -186,7 +185,6 @@ void mover_fim (estado_t *e) {
     e->notas[i] = e->notas[i + 1];
   }
   e->notas[e->n_notas - 1] = tmp;
-  atualiza_nota_corrente(e);
 }
 
 void gravar_notas (estado_t *e, char file_name[]) {
@@ -228,7 +226,6 @@ void deleta_nota (estado_t *e) {
     if(!realoca_memoria(e, -1)) return;
     e->existe_nota_removida = 1;
   }
-  atualiza_nota_corrente(e);
 }
 
 void inserir_nota_removida (estado_t *e) {
@@ -238,13 +235,12 @@ void inserir_nota_removida (estado_t *e) {
     e->nota_removida.retangulo.y = e->cursor_y;
     e->notas[e->n_notas - 1] = e->nota_removida;
     e->existe_nota_removida = 0;
-    atualiza_nota_corrente(e);
   }
 }
 
 void posiciona_cursor_ultima_nota(estado_t *e) {
   for (int i = e->n_notas - 1; i >= 0; i--) {
-    if(strstr(e->notas[i].texto, e->texto_busca)) {
+    if(strstr(e->notas[i].texto, e->texto_busca) && strstr(e->notas[i].etiqueta, e->etiqueta_busca)) {
       e->cursor_x = e->notas[i].retangulo.x;
       e->cursor_y = e->notas[i].retangulo.y;
       return;
@@ -318,6 +314,9 @@ void diminui_direita(estado_t *e)
 {
     if (e->nota_corrente != NULL && e->nota_corrente->retangulo.largura > 1) {
         e->nota_corrente->retangulo.largura--;
+        if (e->cursor_x >= e->nota_corrente->retangulo.x + e->nota_corrente->retangulo.largura) {
+          move_esquerda(e);
+        }
     }
 }
 
@@ -326,6 +325,9 @@ void diminui_esquerda(estado_t *e)
     if (e->nota_corrente != NULL && e->nota_corrente->retangulo.largura > 1) {
         e->nota_corrente->retangulo.largura--;
         e->nota_corrente->retangulo.x++;
+        if (e->cursor_x < e->nota_corrente->retangulo.x) {
+          move_direita(e);
+        }
     }
 }
 
@@ -334,6 +336,9 @@ void diminui_cima(estado_t *e)
     if (e->nota_corrente != NULL && e->nota_corrente->retangulo.altura > 1) {
         e->nota_corrente->retangulo.altura--;
         e->nota_corrente->retangulo.y++;
+        if (e->cursor_y < e->nota_corrente->retangulo.y) {
+          move_baixo(e);
+        }
     }
 }
 
@@ -341,7 +346,9 @@ void diminui_baixo(estado_t *e)
 {
     if (e->nota_corrente != NULL && e->nota_corrente->retangulo.altura > 1) {
         e->nota_corrente->retangulo.altura--;
-    
+        if (e->cursor_y >= e->nota_corrente->retangulo.y + e->nota_corrente->retangulo.altura) {
+          move_cima(e);
+        }
     }
 }
 
@@ -380,11 +387,11 @@ void aumenta_baixo(estado_t *e)
 void tela_principal(estado_t *e)
 {
   t_limpa();
-  desenha_ret(1, 1, e->altura_fundo, e->largura_fundo, 10, 20, 30, "fundo");
+  desenha_ret(1, 1, e->altura_fundo, e->largura_fundo, 10, 20, 30, "fundo", "");
   for (int i = 0; i < e->n_notas; i++) {
     if (strstr(e->notas[i].texto, e->texto_busca) && strstr(e->notas[i].etiqueta, e->etiqueta_busca)) {
       desenha_ret(e->notas[i].retangulo.y, e->notas[i].retangulo.x, e->notas[i].retangulo.altura, e->notas[i].retangulo.largura,
-                  e->notas[i].cor.r, e->notas[i].cor.g, e->notas[i].cor.b, e->notas[i].texto);
+                  e->notas[i].cor.r, e->notas[i].cor.g, e->notas[i].cor.b, e->notas[i].texto, e->notas[i].etiqueta);
       }
   }
   if (e->nota_corrente != NULL) {
@@ -771,7 +778,7 @@ unsigned char soma_digito_cor (tecla_t tec, unsigned char c) {
 
 void tela_edita_cor (estado_t *e, int c) {
   t_limpa();
-  desenha_ret(1, 1, 5, 39, 0, 0, 0, "  r    g    b  ");
+  desenha_ret(1, 1, 5, 39, 0, 0, 0, "  r    g    b  ", "");
   t_lincol(3, 15 + 5*c);
   if (c == 0) {
     t_cortexto(255, 0, 0);

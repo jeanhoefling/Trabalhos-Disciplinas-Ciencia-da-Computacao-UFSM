@@ -130,7 +130,7 @@ void mov_user (int vetor[16], char letra) {
 
 //Parte adicionada ao programa para facilitar a execução da função solicitada no item 11
 //A ordem será verificar esquerda, direita, acima e abaixo.
-void verifica_lados (int vetor[16], int pos, bool verificado[4]) {
+void verifica_lados (int pos, bool verificado[4]) {
     //Inicializa o vetor "verificado"
     for (int i = 0; i < 4; i++) {
         verificado[i] = false;
@@ -161,8 +161,13 @@ void verifica_lados (int vetor[16], int pos, bool verificado[4]) {
 
 //Função exigida de fato no exercício 11
 void move_diff (int vetor[16], int pos) {
+    // Caso receba uma posição inválida
+    if (pos < 0 || pos > 15) {
+        return;
+    }
+
     bool verificado[4];
-    verifica_lados(vetor, pos, verificado);
+    verifica_lados(pos, verificado);
     if (verificado[0]) {
         if (vetor[pos - 1] == 15) {
             esquerda(vetor);

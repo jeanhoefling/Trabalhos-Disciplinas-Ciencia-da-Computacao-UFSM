@@ -179,24 +179,35 @@ void destaca_nota_corrente(estado_t *e)
 
 
     // topo
-    for(int x = r.x - 1; x <= r.x + r.largura; x++) {
-        t_lincol(r.y - 1, x);
-        printf("*");
+    if(r.y > 1) {
+      for(int x = r.x; x < r.x + r.largura; x++) {
+          t_lincol(r.y - 1, x);
+          printf("*");
+      }
     }
 
     // baixo
-    for(int x = r.x - 1; x <= r.x + r.largura; x++) {
+    if (r.y + r.altura < e->altura_fundo + 1) {
+      for(int x = r.x; x < r.x + r.largura; x++) {
         t_lincol(r.y + r.altura, x);
         printf("*");
+      }
     }
 
-    // laterais
-    for(int y = r.y; y < r.y + r.altura; y++) {
-        t_lincol(y, r.x - 1);
-        printf("*");
+    // lateral esquerda
+    if (r.x > 1) {
+      for(int y = r.y; y < r.y + r.altura; y++) {
+          t_lincol(y, r.x - 1);
+          printf("*");
+      }
+    }
 
-        t_lincol(y, r.x + r.largura);
-        printf("*");
+    // lateral direita
+    if (r.x + r.largura < e->largura_fundo + 1) {
+      for(int y = r.y; y < r.y + r.altura; y++) {
+          t_lincol(y, r.x + r.largura);
+          printf("*");
+      }
     }
 }
 
@@ -459,40 +470,40 @@ void exec_principal(estado_t *e, char file_name[])
     case T_BAIXO:
       move_baixo(e);
       break;
-    case T_SHIFT_ESQUERDA:
+    case T_S_ESQUERDA:
       move_nota_esquerda(e);
       break;
-    case T_SHIFT_DIREITA:
+    case T_S_DIREITA:
       move_nota_direita(e);
       break;
-    case T_SHIFT_CIMA:
+    case T_S_CIMA:
       move_nota_cima(e);
       break;
-    case T_SHIFT_BAIXO:
+    case T_S_BAIXO:
       move_nota_baixo(e);
       break;
-    case T_ALT_ESQUERDA:
+    case T_A_ESQUERDA:
       diminui_esquerda(e);
       break;
-    case T_ALT_DIREITA:
+    case T_A_DIREITA:
       diminui_direita(e);
       break;
-    case T_ALT_CIMA:
+    case T_A_CIMA:
       diminui_cima(e);
       break;
-    case T_ALT_BAIXO:
+    case T_A_BAIXO:
       diminui_baixo(e);
       break;
-    case T_CTRL_ESQUERDA:
+    case T_C_ESQUERDA:
       aumenta_esquerda(e);
       break;
-    case T_CTRL_DIREITA:
+    case T_C_DIREITA:
       aumenta_direita(e);
       break;
-    case T_CTRL_CIMA:
+    case T_C_CIMA:
       aumenta_cima(e);
       break;
-    case T_CTRL_BAIXO:
+    case T_C_BAIXO:
       aumenta_baixo(e);
       break;
     case T_DEL:
@@ -787,7 +798,7 @@ void exec_edita_etiqueta(estado_t *e)
         }
         muda_modo(e, principal);
       }
-    } else if (tec == T_SHIFT_DIREITA) { // Usei shift+direita porque não tinha shift+enter
+    } else if (tec == T_CTRL_T) { // Usei shift+direita porque não tinha shift+enter
       strcpy(e->etiqueta_edicao, txt);
       altera_notas_visiveis(e, 2);
       muda_modo(e, principal);
@@ -881,13 +892,13 @@ void exec_edita_cor (estado_t *e) {
     } else if (tec == T_CIMA) {
       altera_valor_componente(e, cor_atual, 1);
       ultimo_foi_digito = 0;
-    } else if (tec == T_SHIFT_CIMA) {
+    } else if (tec == T_S_CIMA) {
       altera_valor_componente(e, cor_atual, 30);
       ultimo_foi_digito = 0;
     } else if (tec == T_BAIXO) {
       altera_valor_componente(e, cor_atual, -1);
       ultimo_foi_digito = 0;
-    } else if (tec == T_SHIFT_BAIXO) {
+    } else if (tec == T_S_BAIXO) {
       altera_valor_componente(e, cor_atual, -30);
       ultimo_foi_digito = 0;
     } else if (tec == T_ESQUERDA) {
@@ -915,7 +926,7 @@ void exec_edita_cor (estado_t *e) {
       }
     }
     //AQUI UTILIZEI SHIFT+DIREITA PORQUE NÃO HAVIA SHIFT+ENTER
-    else if (tec == T_SHIFT_DIREITA) {
+    else if (tec == T_CTRL_T) {
       altera_notas_visiveis(e, 1);
       muda_modo(e, principal);
     }

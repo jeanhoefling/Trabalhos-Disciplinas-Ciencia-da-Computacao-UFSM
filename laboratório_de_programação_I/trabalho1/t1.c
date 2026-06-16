@@ -21,6 +21,12 @@ double potencia (double base, int expoente) {
 }
 
 long fatorial (long numero) {
+    // Um valor de retorno padrão caso receba um valor invalido (negativo)
+    if (numero < 0) {
+        return -1;
+    }
+
+
     if (numero == 0) {
         return 1;
     }
@@ -34,17 +40,21 @@ double seno (double angulo) {
     while (termo >= potencia(10, -10) || termo <= -potencia(10, -10)) {
         total += termo;
         i += 2;
-        termo *= ((-1) * angulo * angulo)/(i * (i-1));
+        termo = potencia(-1, i/2)*(potencia(angulo, i)/fatorial(i));
     }
     return total;
 }
 
 double raiz (double numero) {
-    double termo_anterior = 5, termo_atual = 6, temp = 5;
+    // Retorno padrão para valor recebido inválido (não existe raiz de número negativo nos reais)
+    if (numero < 0) {
+        return -1;
+    }
+
+    double termo_anterior = numero/2 + 1, termo_atual = numero/2;
     while (termo_atual - termo_anterior > potencia(10, -10) || termo_atual - termo_anterior < -potencia(10, -10)) {
-        termo_anterior = temp;
+        termo_anterior = termo_atual;
         termo_atual = (termo_anterior+numero/termo_anterior)/2;
-        temp = termo_atual;
     }
     return termo_atual;
 }

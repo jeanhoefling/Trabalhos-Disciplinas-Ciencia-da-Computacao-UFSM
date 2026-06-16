@@ -163,6 +163,43 @@ void atualiza_nota_corrente (estado_t *e) {
   }
 }
 
+void destaca_nota_corrente(estado_t *e)
+{
+    retangulo r = e->nota_corrente->retangulo;
+    cor c = e->nota_corrente->cor;
+
+    if ((c.r + c.g + c.b)/3 < 120) {
+      t_corfundo(255,255,255);
+      t_cortexto(0,0,0);
+    }
+    else {
+      t_corfundo(0,0,0);
+      t_cortexto(255,255,255);  
+    }
+
+
+    // topo
+    for(int x = r.x - 1; x <= r.x + r.largura; x++) {
+        t_lincol(r.y - 1, x);
+        printf("*");
+    }
+
+    // baixo
+    for(int x = r.x - 1; x <= r.x + r.largura; x++) {
+        t_lincol(r.y + r.altura, x);
+        printf("*");
+    }
+
+    // laterais
+    for(int y = r.y; y < r.y + r.altura; y++) {
+        t_lincol(y, r.x - 1);
+        printf("*");
+
+        t_lincol(y, r.x + r.largura);
+        printf("*");
+    }
+}
+
 void mover_inicio (estado_t *e) {
   if (e->nota_corrente == NULL) {
     return;
@@ -395,16 +432,7 @@ void tela_principal(estado_t *e)
       }
   }
   if (e->nota_corrente != NULL) {
-    if ((e->nota_corrente->cor.r + e->nota_corrente->cor.g + e->nota_corrente->cor.b)/3 < 120) {
-      t_corfundo(255, 255, 255);
-      t_cortexto(0, 0, 0);
-    }
-    else {
-      t_corfundo(0, 0, 0);
-      t_cortexto(255, 255, 255);
-    }
-    t_lincol(e->nota_corrente->retangulo.y, e->nota_corrente->retangulo.x + e->nota_corrente->retangulo.largura - 1);
-    printf("c");
+    destaca_nota_corrente(e);
   }
   t_lincol(e->cursor_y, e->cursor_x);
 }
@@ -543,13 +571,15 @@ void grava_texto(estado_t *e, char txt[]) {
   strcpy(e->nota_corrente->texto, txt);
 }
 
-void tela_edita_texto(char texto[], int cur)
+void tela_edita_texto(estado_t *e, char texto[], int cur)
 {
   t_limpa();
+  nota *n = e->nota_corrente;
   //pode ser melhorada para mostrar a nota corrente
-  t_lincol(1, 1);
+  desenha_ret(1, 1, n->retangulo.altura, n->retangulo.largura, n->cor.r, n->cor.g, n->cor.b, texto, n->etiqueta);
+  t_lincol(2 + n->retangulo.altura, 1);
   printf("%s", texto);
-  t_lincol(1, cur + 1);
+  t_lincol(2 + n->retangulo.altura, cur + 1);
 }
 
 void exec_edita_texto(estado_t *e)
@@ -566,7 +596,7 @@ void exec_edita_texto(estado_t *e)
     
     while (e->modo == edita_texto) {
       // desenha a tela
-      tela_edita_texto(txt, cursor_edita);
+      tela_edita_texto(e, txt, cursor_edita);
 
       // lê um comando
       tecla_t tec = t_tecla();
@@ -767,6 +797,31 @@ void exec_edita_etiqueta(estado_t *e)
 
 // FUNÇÕES EDITA COR
 
+void altera_valor_componente (estado_t *e, int c_atual, int dc) {
+  unsigned char *comp = &(e->cor_edicao[c_atual]);
+  if (*(comp) + dc >= 0 && *(comp) + dc <= 255) {
+    *(comp) += dc;
+  }
+  else if (*(comp) + dc > 255) {
+    *(comp) = 255;
+  }
+  else {
+    *(comp) = 0;
+  }
+}
+
+void altera_componente (int *c_atual, int dc) {
+  if (*(c_atual) + dc >= 0 && *(c_atual) + dc <= 2) {
+    *(c_atual) += dc;
+  }
+  else if (*(c_atual) + dc > 2) {
+    *(c_atual) = 0;
+  }
+  else {
+    *(c_atual) = 2;
+  }
+}
+
 unsigned char soma_digito_cor (tecla_t tec, unsigned char c) {
   if (c * 10 + (tec - '0') <= 255) {
     return c * 10 + (tec - '0');
@@ -824,42 +879,22 @@ void exec_edita_cor (estado_t *e) {
       cor_atual = 2;
       ultimo_foi_digito = 0;
     } else if (tec == T_CIMA) {
-      if (e->cor_edicao[cor_atual] < 255) {
-        e->cor_edicao[cor_atual]++;
-      }
+      altera_valor_componente(e, cor_atual, 1);
       ultimo_foi_digito = 0;
     } else if (tec == T_SHIFT_CIMA) {
-      if (e->cor_edicao[cor_atual] <= 225) {
-        e->cor_edicao[cor_atual] += 30;
-      }
-      else {
-        e->cor_edicao[cor_atual] = 255;
-      }
+      altera_valor_componente(e, cor_atual, 30);
       ultimo_foi_digito = 0;
     } else if (tec == T_BAIXO) {
-      if (e->cor_edicao[cor_atual] > 0) {
-        e->cor_edicao[cor_atual]--;
-      }
+      altera_valor_componente(e, cor_atual, -1);
       ultimo_foi_digito = 0;
     } else if (tec == T_SHIFT_BAIXO) {
-      if (e->cor_edicao[cor_atual] >= 30) {
-        e->cor_edicao[cor_atual] -= 30;
-      }
-      else {
-        e->cor_edicao[cor_atual] = 0;
-      }
+      altera_valor_componente(e, cor_atual, -30);
       ultimo_foi_digito = 0;
     } else if (tec == T_ESQUERDA) {
-      cor_atual--;
-      if (cor_atual < 0) {
-        cor_atual = 2;
-      }
+      altera_componente(&cor_atual, -1);
       ultimo_foi_digito = 0;
     } else if (tec == T_DIREITA) {
-      cor_atual++;
-      if (cor_atual > 2) {
-        cor_atual = 0;
-      }
+      altera_componente(&cor_atual, 1);
       ultimo_foi_digito = 0;
     } else if (tec == T_ENTER) {
       if (e->nota_corrente != NULL) {

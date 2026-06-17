@@ -153,7 +153,7 @@ void atualiza_nota_corrente (estado_t *e) {
   retangulo atual;
   e->nota_corrente = NULL;
   for (int i = 0; i < e->n_notas; i++) {
-    if (!(strstr(e->notas[i].texto, e->texto_busca)) || !(strstr(e->notas[i].etiqueta, e->etiqueta_busca))) {
+    if (!(strstr(e->notas[i].texto, e->texto_busca)) || strncmp(e->notas[i].etiqueta, e->etiqueta_busca, strlen(e->etiqueta_busca)) != 0) {
       continue;
     }
     atual = e->notas[i].retangulo;
@@ -288,7 +288,7 @@ void inserir_nota_removida (estado_t *e) {
 
 void posiciona_cursor_ultima_nota(estado_t *e) {
   for (int i = e->n_notas - 1; i >= 0; i--) {
-    if(strstr(e->notas[i].texto, e->texto_busca) && strstr(e->notas[i].etiqueta, e->etiqueta_busca)) {
+    if(strstr(e->notas[i].texto, e->texto_busca) && strncmp(e->notas[i].etiqueta, e->etiqueta_busca, strlen(e->etiqueta_busca)) == 0) {
       e->cursor_x = e->notas[i].retangulo.x;
       e->cursor_y = e->notas[i].retangulo.y;
       return;
@@ -437,7 +437,7 @@ void tela_principal(estado_t *e)
   t_limpa();
   desenha_ret(1, 1, e->altura_fundo, e->largura_fundo, 10, 20, 30, "fundo", "");
   for (int i = 0; i < e->n_notas; i++) {
-    if (strstr(e->notas[i].texto, e->texto_busca) && strstr(e->notas[i].etiqueta, e->etiqueta_busca)) {
+    if (strstr(e->notas[i].texto, e->texto_busca) && strncmp(e->notas[i].etiqueta, e->etiqueta_busca, strlen(e->etiqueta_busca)) == 0) {
       desenha_ret(e->notas[i].retangulo.y, e->notas[i].retangulo.x, e->notas[i].retangulo.altura, e->notas[i].retangulo.largura,
                   e->notas[i].cor.r, e->notas[i].cor.g, e->notas[i].cor.b, e->notas[i].texto, e->notas[i].etiqueta);
       }
@@ -743,7 +743,7 @@ void exec_edita_ebusca(estado_t *e)
 alterar todas as notas visiveis. Se c_e for 1 altera as cores, se for 2 altera etiquetas. */
 void altera_notas_visiveis(estado_t *e, int c_e) {
   for (int i = 0; i < e->n_notas; i++) {
-    if (strstr(e->notas[i].texto, e->texto_busca) && strstr(e->notas[i].etiqueta, e->etiqueta_busca)) {
+    if (strstr(e->notas[i].texto, e->texto_busca) && strncmp(e->notas[i].etiqueta, e->etiqueta_busca, strlen(e->etiqueta_busca)) == 0) {
         if (c_e == 2) {
           strcpy(e->notas[i].etiqueta, e->etiqueta_edicao);
         }
@@ -934,7 +934,7 @@ void exec_edita_cor (estado_t *e) {
 }
 
 int ler_notas (FILE *arq, FILE *erros, estado_t *e) {
-  char etiqueta[50], texto[500], texto_cortado[150];
+  char etiqueta[10], texto[300], texto_cortado[150];
   int r, g, b, x, y, largura, altura; 
   int tem_erro, cont, c;
   while (fscanf(arq, "%s %d %d %d %d %d %d %d ", etiqueta, &r, &g, &b, &x, &y, &largura, &altura) == 8) {
@@ -944,20 +944,27 @@ int ler_notas (FILE *arq, FILE *erros, estado_t *e) {
     // Serve pra ignorar a primeira " da palavra
     fgetc(arq);
 
-    while ((c = fgetc(arq)) != '\"') {
+    while ((c = fgetc(arq)) != '\"' && c != '\n' && c != EOF) {
       texto[cont] = c;
       cont++;
     }
 
-    while ((c = fgetc(arq)) != '\n' && c != EOF) {
-      texto[cont] = c;
-      cont++;
+    // Se tiver fechar aspas e tiver texto depois tem erro, se não tiver texto depois não tem
+    if (c == '\"') {
+      while ((c = fgetc(arq)) != '\n' && c != EOF) {
+        texto[cont] = c;
+        cont++;
+        tem_erro = 1;
+      }
+    }
+    // Se tiver \n ou EOF antes do fechamento das aspas tem erro tambem
+    else {
       tem_erro = 1;
     }
 
     texto[cont] = '\0';
 
-    // Etiqueta maior que devia
+    // Etiqueta de tamanho fora do padrão
     if (strlen(etiqueta) != 3) {
       tem_erro = 1;
     }
@@ -970,11 +977,8 @@ int ler_notas (FILE *arq, FILE *erros, estado_t *e) {
       }
     }
 
-    if ((r < 0 || r > 255) || (g < 0 || g > 255) || (b < 0 || b > 255)) {
-      tem_erro = 1;
-    }
-
-    if (x < 1 || y < 1 || largura < 1 || altura < 1) {
+    if ((r < 0 || r > 255) || (g < 0 || g > 255) || (b < 0 || b > 255) ||
+        x < 1 || y < 1 || largura < 1 || altura < 1) {
       tem_erro = 1;
     }
 
@@ -996,7 +1000,7 @@ int ler_notas (FILE *arq, FILE *erros, estado_t *e) {
     }
 
     if (tem_erro == 1) {
-      fprintf(erros, "%s %d %d %d %d %d %d %d %s\n", etiqueta, r, g, b, x, y, largura, altura, texto);
+      fprintf(erros, "%s %d %d %d %d %d %d %d \"%s\"\n", etiqueta, r, g, b, x, y, largura, altura, texto);
     }
     else {
       if(!realoca_memoria(e, 1)) return -1;
@@ -1039,7 +1043,7 @@ int main (void) {
         return -1;
     }
 
-    estado_t estado = { principal, NULL, 0, 1, 1, NULL, {0}, 0, "", "", 150, 40, {0}, ""};
+    estado_t estado = { principal, NULL, 0, 1, 1, NULL, {0}, 0, "", "", 80, 24, {0}, ""};
 
     int conseguiu_ler = ler_notas(arq, erros, &estado);
     if (conseguiu_ler == -1) {

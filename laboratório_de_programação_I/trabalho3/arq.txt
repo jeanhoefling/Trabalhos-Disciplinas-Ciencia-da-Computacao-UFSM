@@ -1,4 +1,1 @@
-A00 0 90 0 73 17 11 9 "Nova notaa"
-A05 0 90 0 138 37 12 4 "No"
-A06 0 90 0 131 30 10 8 "Nova nota"
-A00 0 90 0 121 33 5 5 "Nova nota"
+LRC 244 255 25 54 3 20 20 "arroz oleo sal sardinha"

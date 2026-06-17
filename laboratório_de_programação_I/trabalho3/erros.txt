@@ -1,3 +1,12 @@
 Erros: 
 A12 255 10 10 1 1 5 1 "T3!@#!"!"
 Erros: 
+Erros: 
+Erros: 
+LRC 244 255 25 54 3 20 20 "arroz oleo sal sardinhaadsa""
+Erros: 
+Erros: 
+Erros: 
+Erros: 
+Erros: 
+Erros: 

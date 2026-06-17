@@ -1,1 +1,2 @@
-LRC 244 255 25 54 3 20 20 "arroz oleo sal sardinha"
+A01 255 120 120 33 6 5 5 "Nova nota"
+A01 255 120 120 21 10 5 7 "Nova nt"

@@ -459,57 +459,75 @@ void exec_principal(estado_t *e, char file_name[])
   // realiza uma ação conforme o comando lido
   switch (tec) {
     case T_ESQUERDA:
+    case 'h':
       move_esquerda(e);
       break;
     case T_DIREITA:
+    case 'l':
       move_direita(e);
       break;
     case T_CIMA:
+    case 'k':
       move_cima(e);
       break;
     case T_BAIXO:
+    case 'j':
       move_baixo(e);
       break;
     case T_S_ESQUERDA:
+    case 'H':
       move_nota_esquerda(e);
       break;
     case T_S_DIREITA:
+    case 'L':
       move_nota_direita(e);
       break;
     case T_S_CIMA:
+    case 'K':
       move_nota_cima(e);
       break;
     case T_S_BAIXO:
+    case 'J':
       move_nota_baixo(e);
       break;
     case T_A_ESQUERDA:
+    case T_CTRL_Y:
       diminui_esquerda(e);
       break;
     case T_A_DIREITA:
+    case T_CTRL_O:
       diminui_direita(e);
       break;
     case T_A_CIMA:
+    case T_CTRL_I:
       diminui_cima(e);
       break;
     case T_A_BAIXO:
+    case T_CTRL_U:
       diminui_baixo(e);
       break;
     case T_C_ESQUERDA:
+    case T_CTRL_H:
       aumenta_esquerda(e);
       break;
     case T_C_DIREITA:
+    case T_CTRL_L:
       aumenta_direita(e);
       break;
     case T_C_CIMA:
+    case T_CTRL_K:
       aumenta_cima(e);
       break;
     case T_C_BAIXO:
+    case T_CTRL_J:
       aumenta_baixo(e);
       break;
     case T_DEL:
+    case 'd':
       deleta_nota(e);
       break;
     case T_INS:
+    case 'I':
       inserir_nota_removida(e);
       break;
     case 'p':
@@ -599,7 +617,7 @@ void exec_edita_texto(estado_t *e)
     muda_modo(e, principal);
   }
   else {
-    char txt[200] = "";
+    char txt[150] = "";
     strcpy(txt, e->nota_corrente->texto);
 
     int cursor_edita = strlen(e->nota_corrente->texto);
@@ -613,24 +631,24 @@ void exec_edita_texto(estado_t *e)
       tecla_t tec = t_tecla();
 
       // realiza uma ação conforme o comando lido
-      if (tec == T_ESC) {
+      if (tec == T_ESC || tec == T_CTRL_C) {
         muda_modo(e, principal);
-      } else if (tec == T_BS) {
+      } else if (tec == T_BS || tec == T_CTRL_B) {
         if (cursor_edita > 0) {
           move_cursor_edita(&cursor_edita, -1, txt);
           remove_caractere(txt, cursor_edita);
         }
-      } else if ((tec >= 32 && tec <= 126)) {
+      } else if ((tec >= 32 && tec <= 126 && tec != 34)) {
         insere_caractere(txt, tec, cursor_edita);
         move_cursor_edita(&cursor_edita, 1, txt);
       } else if (tec == T_ENTER) {
         grava_texto(e, txt);
         muda_modo(e, principal);
-      } else if (tec == T_ESQUERDA) {
+      } else if (tec == T_ESQUERDA || tec == T_CTRL_H) {
         move_cursor_edita(&cursor_edita, -1, txt);
-      } else if (tec == T_DIREITA) {
+      } else if (tec == T_DIREITA || tec == T_CTRL_L) {
         move_cursor_edita(&cursor_edita, 1, txt);
-      } else if (tec ==  T_DEL) {
+      } else if (tec ==  T_DEL || tec == T_CTRL_D) {
         if (cursor_edita < strlen(txt)) {
           remove_caractere(txt, cursor_edita);
         }
@@ -652,7 +670,7 @@ void tela_edita_tbusca (char txt[], int cursor) {
 
 void exec_edita_tbusca(estado_t *e)
 {
-  char txt[200] = "";
+  char txt[150] = "";
   strcpy(txt, e->texto_busca);
 
   int cursor = strlen(txt);
@@ -662,10 +680,10 @@ void exec_edita_tbusca(estado_t *e)
     tela_edita_tbusca(txt, cursor);
     tecla_t tec = t_tecla();
 
-    if (tec == T_ESC) {
+    if (tec == T_ESC || tec == T_CTRL_C) {
       strcpy(e->texto_busca, "");
       muda_modo(e, principal);
-    } else if (tec == T_BS) {
+    } else if (tec == T_BS || tec == T_CTRL_B) {
       if (cursor > 0) {
         cursor--;
         remove_caractere(txt, cursor);
@@ -676,21 +694,21 @@ void exec_edita_tbusca(estado_t *e)
     } else if (tec == T_ENTER) {
       strcpy(e->texto_busca, txt);
       muda_modo(e, principal);
-    } else if (tec == T_ESQUERDA) {
+    } else if (tec == T_ESQUERDA || tec == T_CTRL_H) {
       if (cursor > 0) {
         cursor--;
       }
-    } else if (tec == T_DIREITA) {
+    } else if (tec == T_DIREITA || tec == T_CTRL_L) {
       if (cursor < strlen(txt)) {
         cursor++;
       }
-    } else if (tec == T_DEL) {
+    } else if (tec == T_DEL || tec == T_CTRL_D) {
       if (cursor < strlen(txt)) {
         remove_caractere(txt, cursor);
       }
-    } else if (tec == T_HOME) {
+    } else if (tec == T_HOME || tec == T_CTRL_K) {
       cursor = 0;
-    } else if (tec == T_END) {
+    } else if (tec == T_END || tec == T_CTRL_J) {
       cursor = strlen(txt);
     }
   }
@@ -721,10 +739,10 @@ void exec_edita_ebusca(estado_t *e)
     tela_edita_ebusca(txt, cursor);
     tecla_t tec = t_tecla();
 
-    if (tec == T_ESC) {
+    if (tec == T_ESC || tec == T_CTRL_C) {
       strcpy(e->etiqueta_busca, "");
       muda_modo(e, principal);
-    } else if (tec == T_BS) {
+    } else if (tec == T_BS || tec == T_CTRL_B) {
       remove_caractere(txt, cursor);
     } else if ((tec >= 'A' && tec <= 'Z') || (tec >= '0' && tec <= '9')) {
       if (strlen(txt) < 3) {
@@ -782,9 +800,9 @@ void exec_edita_etiqueta(estado_t *e)
     tela_edita_etiqueta(txt, cursor);
     tecla_t tec = t_tecla();
 
-    if (tec == T_ESC) {
+    if (tec == T_ESC || tec == T_CTRL_C) {
       muda_modo(e, principal);
-    } else if (tec == T_BS) {
+    } else if (tec == T_BS || tec == T_CTRL_B) {
       remove_caractere(txt, cursor);
     } else if ((tec >= 'A' && tec <= 'Z') || (tec >= '0' && tec <= '9')) {
       if (strlen(txt) < 3) {
@@ -798,7 +816,7 @@ void exec_edita_etiqueta(estado_t *e)
         }
         muda_modo(e, principal);
       }
-    } else if (tec == T_CTRL_T) { // Usei shift+direita porque não tinha shift+enter
+    } else if (tec == T_CTRL_T) { //NÃO HAVIA SHIFT+ENTER
       strcpy(e->etiqueta_edicao, txt);
       altera_notas_visiveis(e, 2);
       muda_modo(e, principal);
@@ -889,22 +907,22 @@ void exec_edita_cor (estado_t *e) {
     } else if (tec == 'a' || tec == 'b') {
       cor_atual = 2;
       ultimo_foi_digito = 0;
-    } else if (tec == T_CIMA) {
+    } else if (tec == T_CIMA || tec == 'k') {
       altera_valor_componente(e, cor_atual, 1);
       ultimo_foi_digito = 0;
-    } else if (tec == T_S_CIMA) {
+    } else if (tec == T_S_CIMA || tec == 'K') {
       altera_valor_componente(e, cor_atual, 30);
       ultimo_foi_digito = 0;
-    } else if (tec == T_BAIXO) {
+    } else if (tec == T_BAIXO || tec == 'j') {
       altera_valor_componente(e, cor_atual, -1);
       ultimo_foi_digito = 0;
-    } else if (tec == T_S_BAIXO) {
+    } else if (tec == T_S_BAIXO || tec == 'J') {
       altera_valor_componente(e, cor_atual, -30);
       ultimo_foi_digito = 0;
-    } else if (tec == T_ESQUERDA) {
+    } else if (tec == T_ESQUERDA || tec == 'h') {
       altera_componente(&cor_atual, -1);
       ultimo_foi_digito = 0;
-    } else if (tec == T_DIREITA) {
+    } else if (tec == T_DIREITA || tec == 'l') {
       altera_componente(&cor_atual, 1);
       ultimo_foi_digito = 0;
     } else if (tec == T_ENTER) {
@@ -912,9 +930,9 @@ void exec_edita_cor (estado_t *e) {
         e->nota_corrente->cor.r = e->cor_edicao[0];
         e->nota_corrente->cor.g = e->cor_edicao[1];
         e->nota_corrente->cor.b = e->cor_edicao[2];
-        muda_modo(e, principal);
       }
-    } else if (tec == T_ESC) {
+      muda_modo(e, principal);
+    } else if (tec == T_ESC || tec == T_CTRL_B) {
       muda_modo(e, principal);
     } else if (tec >= '0' && tec <= '9') {
       if (!ultimo_foi_digito) {
@@ -925,7 +943,7 @@ void exec_edita_cor (estado_t *e) {
         e->cor_edicao[cor_atual] = soma_digito_cor(tec, e->cor_edicao[cor_atual]);
       }
     }
-    //AQUI UTILIZEI SHIFT+DIREITA PORQUE NÃO HAVIA SHIFT+ENTER
+    //NÃO HAVIA SHIFT+ENTER
     else if (tec == T_CTRL_T) {
       altera_notas_visiveis(e, 1);
       muda_modo(e, principal);

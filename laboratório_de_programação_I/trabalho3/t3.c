@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include "tela.h"
 
-//JEAN
 typedef struct {
     unsigned char r;
     unsigned char g;
@@ -124,7 +123,6 @@ void desenha_ret(int y, int x, int altura, int largura,
     cont += largura;
   }
 
-  //REVER BEM ESSE TLINCOL, FUNCIONA MAS TA ESTRANHO
 
   if (texto_maior_que_nota) {
     t_lincol(y + altura/2 + lnt/2 - 1 + lnt%2, x);
@@ -197,16 +195,20 @@ void destaca_nota_corrente(estado_t *e)
     // lateral esquerda
     if (r.x > 1) {
       for(int y = r.y; y < r.y + r.altura; y++) {
-          t_lincol(y, r.x - 1);
-          printf("*");
+        if (y <= e->altura_fundo) {
+            t_lincol(y, r.x - 1);
+            printf("*");         
+        }
       }
     }
 
     // lateral direita
     if (r.x + r.largura < e->largura_fundo + 1) {
       for(int y = r.y; y < r.y + r.altura; y++) {
+        if (y <= e->altura_fundo) {
           t_lincol(y, r.x + r.largura);
           printf("*");
+        }
       }
     }
 }
@@ -952,42 +954,22 @@ void exec_edita_cor (estado_t *e) {
 }
 
 int ler_notas (FILE *arq, FILE *erros, estado_t *e) {
-  char etiqueta[10], texto[300], texto_cortado[150];
+  char etiqueta[10], texto[150], linha[1000];
   int r, g, b, x, y, largura, altura; 
-  int tem_erro, cont, c;
-  while (fscanf(arq, "%s %d %d %d %d %d %d %d ", etiqueta, &r, &g, &b, &x, &y, &largura, &altura) == 8) {
-    cont = 0;
+  int tem_erro = 0, cont_aspas = 0, pos_asp[2];
+  while (fgets(linha, sizeof(linha), arq) != NULL) {
     tem_erro = 0;
+    cont_aspas = 0;
+    etiqueta[0] = '\0';
+    texto[0] = '\0';
+    r = g = b = x = y = largura = altura = 0;
 
-    // Serve pra ignorar a primeira " da palavra
-    fgetc(arq);
+    sscanf(linha, "%9s %d %d %d %d %d %d %d", etiqueta, &r, &g, &b, &x, &y, &largura, &altura);
 
-    while ((c = fgetc(arq)) != '\"' && c != '\n' && c != EOF) {
-      texto[cont] = c;
-      cont++;
-    }
-
-    // Se tiver fechar aspas e tiver texto depois tem erro, se não tiver texto depois não tem
-    if (c == '\"') {
-      while ((c = fgetc(arq)) != '\n' && c != EOF) {
-        texto[cont] = c;
-        cont++;
-        tem_erro = 1;
-      }
-    }
-    // Se tiver \n ou EOF antes do fechamento das aspas tem erro tambem
-    else {
-      tem_erro = 1;
-    }
-
-    texto[cont] = '\0';
-
-    // Etiqueta de tamanho fora do padrão
+    // Etiqueta inválida
     if (strlen(etiqueta) != 3) {
       tem_erro = 1;
     }
-
-    // Etiqueta inválida
     for (int i = 0; i < 3; i++) {
       if (!((etiqueta[i] >= 'A' && etiqueta[i] <= 'Z') ||
           (etiqueta[i] >= '0' && etiqueta[i] <= '9'))) {
@@ -995,30 +977,55 @@ int ler_notas (FILE *arq, FILE *erros, estado_t *e) {
       }
     }
 
+    // Números inválidos
     if ((r < 0 || r > 255) || (g < 0 || g > 255) || (b < 0 || b > 255) ||
         x < 1 || y < 1 || largura < 1 || altura < 1) {
       tem_erro = 1;
     }
 
-    // Texto maior que devia
-    if (strlen(texto) > 149) {
-      strcpy(texto_cortado, texto);
-      texto_cortado[149] = '\0';
-
-      /* Esse valor é um caso especifico em que o texto não é invalido porém ultrapassa
-      o limite do vetor declarado nesse programa */
-      tem_erro = 2;
+    // Busca o número de aspas na linha e a posição das 2 primeiras aspas
+    for (int i = 0; i < strlen(linha); i++) {
+      if (linha[i] ==  '\"') {
+        cont_aspas++;
+        if (cont_aspas > 2) {
+          break;
+        }
+        pos_asp[cont_aspas - 1] = i;
+      }
     }
 
-    // Texto inválido
-    for (int i = 0; i < strlen(texto); i++) {
-      if (!(texto[i] >= 32 && texto[i] <= 126)) {
-            tem_erro = 1;
+    // Se for diferente, ou está mal formatado ou tem aspa no meio do texto, inválido tambem
+    if (cont_aspas != 2) {
+      tem_erro = 1;
+    }
+
+    // esse if é importante pra nao sair acessando o vetor pos_asp sem saber se tem 2 pos
+    if (!(tem_erro)) {
+      // verifica se tem texto após a segunda aspa
+      if (linha[pos_asp[1] + 1] != '\n' && linha[pos_asp[1] + 1] != '\0') {
+        tem_erro = 1;
+      }
+
+      int cont = 0;
+      for (int i = pos_asp[0] + 1; cont < 149 && linha[i] != '\"'; i++) {
+        if (linha[i] >= 32 && linha[i] <= 126) {
+          texto[cont] = linha[i];
+          cont++;
+        }
+        else {
+          tem_erro = 1;
+          break;
+        }
+      }
+      texto[cont] = '\0';
+
+      if (pos_asp[1] - pos_asp[0] - 1> 149) {
+        tem_erro = 2;
       }
     }
 
     if (tem_erro == 1) {
-      fprintf(erros, "%s %d %d %d %d %d %d %d \"%s\"\n", etiqueta, r, g, b, x, y, largura, altura, texto);
+      fprintf(erros, "%s", linha);
     }
     else {
       if(!realoca_memoria(e, 1)) return -1;
@@ -1034,8 +1041,8 @@ int ler_notas (FILE *arq, FILE *erros, estado_t *e) {
         strcpy(e->notas[e->n_notas - 1].texto, texto);
       }
       else if (tem_erro == 2) {
-        fprintf(erros, "%s %d %d %d %d %d %d %d \"%s\"\n", etiqueta, r, g, b, x, y, largura, altura, texto);
-        strcpy(e->notas[e->n_notas - 1].texto, texto_cortado);
+        fprintf(erros, "%s", linha);
+        strcpy(e->notas[e->n_notas - 1].texto, texto);
       }
     }
   }

@@ -1,2 +1,3 @@
-A01 255 120 120 33 6 5 5 "Nova nota"
-A01 255 120 120 21 10 5 7 "Nova nt"
+ABC 90 0 0 46 4 20 20 "arroz oleo sal sardinha"
+ADC 90 0 0 11 14 10 3 "limpar gambiarra da leitura"
+ABC 90 0 0 9 8 5 5 "Nova nota"

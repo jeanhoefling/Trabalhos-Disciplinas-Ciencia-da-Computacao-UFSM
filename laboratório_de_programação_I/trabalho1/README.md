@@ -72,3 +72,7 @@ gcc programa.c -o programa
 ...
 └──────┴───────┴───────┘
 ```
+
+## Autor
+
+Projeto desenvolvido por Jean Henrique de Souza Hoefling para fins acadêmicos na disciplina de Laboratório de Programação I.

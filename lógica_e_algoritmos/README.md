@@ -4,7 +4,7 @@ Projeto desenvolvido para a disciplina de **Lógica e Algoritmos / Laboratório 
 
 ---
 
-# 📖 Sobre o Projeto
+# Sobre o Projeto
 
 O objetivo do trabalho foi desenvolver um jogo simples baseado em uma matriz bidimensional, aplicando conceitos fundamentais de programação estudados durante a disciplina.
 
@@ -23,7 +23,7 @@ O jogo acontece inteiramente no terminal e possui movimentação automática par
 
 ---
 
-# 🧩 Código Base Fornecido Pelo Professor
+# Código Base Fornecido Pelo Professor
 
 O professor disponibilizou um código inicial contendo:
 
@@ -56,18 +56,18 @@ Esse exemplo serviu apenas como ponto de partida para o desenvolvimento completo
 
 ---
 
-# 🚀 Funcionalidades Implementadas
+# Funcionalidades Implementadas
 
 A partir do código base, foram implementadas diversas funcionalidades adicionais:
 
-## ✔ Sistema completo de movimentação
+## Sistema completo de movimentação
 
 * movimentação automática aleatória;
 * movimentação do jogador;
 * movimentação do inimigo;
 * verificação de direção válida.
 
-## ✔ Sistema de colisão
+## Sistema de colisão
 
 * bloqueio por paredes;
 * bloqueio por obstáculos;
@@ -75,29 +75,29 @@ A partir do código base, foram implementadas diversas funcionalidades adicionai
 * detecção de saída;
 * coleta de itens.
 
-## ✔ Sistema de vidas
+## Sistema de vidas
 
 * jogador possui vidas;
 * vidas podem ser recuperadas;
 * derrota ao chegar em zero vidas.
 
-## ✔ Sistema de chave e saída
+## Sistema de chave e saída
 
 * o jogador precisa coletar a chave;
 * somente após isso a saída libera a vitória.
 
-## ✔ Geração aleatória de itens
+## Geração aleatória de itens
 
 * vidas aparecem periodicamente;
 * posições são geradas aleatoriamente;
 * setas especiais são geradas aleatoriamente.
 
-## ✔ Sistema de setas direcionais
+## Sistema de setas direcionais
 
 * setas alteram automaticamente a direção do personagem;
 * implementação recursiva da movimentação.
 
-## ✔ Condições de vitória e derrota
+## Condições de vitória e derrota
 
 * vitória ao pegar a chave e alcançar a saída;
 * derrota ao perder todas as vidas;
@@ -105,7 +105,7 @@ A partir do código base, foram implementadas diversas funcionalidades adicionai
 
 ---
 
-# 🎮 Objetivo do Jogo
+# Objetivo do Jogo
 
 O objetivo do jogador é:
 
@@ -122,7 +122,7 @@ Durante o jogo:
 
 ---
 
-# 🧠 Estrutura da Matriz
+# Estrutura da Matriz
 
 Toda a lógica do jogo foi construída utilizando uma matriz bidimensional:
 
@@ -147,7 +147,7 @@ Cada número representa um elemento do cenário.
 
 ---
 
-# ⚙️ Tecnologias e Bibliotecas Utilizadas
+# Tecnologias e Bibliotecas Utilizadas
 
 ## Linguagem
 
@@ -164,7 +164,7 @@ Cada número representa um elemento do cenário.
 
 ---
 
-# 🧱 Estrutura de Personagens
+# Estrutura de Personagens
 
 Foi utilizada uma struct para representar os personagens:
 
@@ -185,7 +185,7 @@ Isso permitiu organizar:
 
 ---
 
-# 🔄 Sistema de Movimentação
+# Sistema de Movimentação
 
 A movimentação foi implementada verificando diretamente os valores armazenados na matriz.
 
@@ -198,7 +198,7 @@ Antes de mover:
 
 ---
 
-# 💥 Sistema de Colisão
+# Sistema de Colisão
 
 As colisões utilizam diretamente os valores da matriz.
 
@@ -221,7 +221,7 @@ Dependendo do elemento encontrado:
 
 ---
 
-# ❤️ Sistema de Vida
+# Sistema de Vida
 
 O jogador inicia com:
 
@@ -238,7 +238,7 @@ Ao coletar:
 
 ---
 
-# 🗝️ Sistema de Vitória
+# Sistema de Vitória
 
 A saída só pode ser utilizada após a coleta da chave.
 
@@ -250,7 +250,7 @@ Fluxo de vitória:
 
 ---
 
-# 🎲 Aleatoriedade
+# Aleatoriedade
 
 O projeto utiliza geração aleatória para:
 
@@ -267,7 +267,7 @@ srand(time(NULL));
 
 ---
 
-# 🧭 Setas Direcionais
+# Setas Direcionais
 
 As setas especiais foram um dos principais elementos adicionados ao projeto.
 
@@ -284,7 +284,7 @@ Tipos disponíveis:
 
 ---
 
-# 🖥️ Interface no Terminal
+# Interface no Terminal
 
 O jogo utiliza caracteres Unicode para desenhar:
 
@@ -314,7 +314,7 @@ setlocale(LC_ALL, "");
 
 ---
 
-# 📌 Principais Funções Desenvolvidas
+# Principais Funções Desenvolvidas
 
 ## `move()`
 
@@ -344,7 +344,7 @@ Responsável por desenhar o estado atual do jogo.
 
 ---
 
-# 🚀 Como Executar
+# Como Executar
 
 ## Compilar
 
@@ -360,7 +360,7 @@ gcc jogo.c -o jogo
 
 ---
 
-# 📚 Aprendizados
+# Aprendizados
 
 Durante o desenvolvimento deste projeto foram praticados:
 

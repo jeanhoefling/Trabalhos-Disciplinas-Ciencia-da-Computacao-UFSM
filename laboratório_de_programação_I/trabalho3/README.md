@@ -104,6 +104,6 @@ Este projeto foi desenvolvido para praticar:
 * Organização de software modular
 * Tratamento de entrada do usuário
 
-## Autor
+## Autor 
 
-Jean Henrique de Souza Hoefling
+Projeto desenvolvido por Jean Henrique de Souza Hoefling para fins acadêmicos na disciplina de Laboratório de Programação I.

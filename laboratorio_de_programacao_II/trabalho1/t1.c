@@ -11,6 +11,7 @@ typedef struct {
     int escudos;
     int onda;
     int noite;
+    int inimigos_onda;
 
     int perdeu;
     int fim;
@@ -101,13 +102,19 @@ void desloca_inimigos (estado_jogo *e) {
     for (int i = 0; i < 9; i++) {
         e->atacantes[i] = e->atacantes[i+1];
     }
-    e->atacantes[9] = gera_inimigo();
+    if (e->inimigos_onda < 20 - (e->noite * 5)) {
+        e->atacantes[9] = gera_inimigo();
+        e->inimigos_onda++;
+    } else {
+        e->atacantes[9] = ' ';
+    }
 }
 
-void reset_atacantes (char v[10]) {
+void reset_atacantes (estado_jogo *e) {
     for (int i = 0; i < 10; i++) {
-        v[i] = ' ';
+        e->atacantes[i] = ' ';
     }
+    e->inimigos_onda = 0;
 }
 
 void troca_arma (estado_jogo *e) {
@@ -123,6 +130,9 @@ void troca_arma (estado_jogo *e) {
 }
 
 void atira (estado_jogo *e) {
+    if (e->tiros <= 0) {
+        return;
+    }
     for (int i = 0; i < 10; i++) {
         if (e->atacantes[i] == e->arma || (e->atacantes[i] == 'N' && e->arma == 'n')) {
             e->tiros--;
@@ -167,32 +177,55 @@ float temp_onda (estado_jogo e) {
     return temp;
 }
 
+int fim_ataque (char v[10]) {
+    for (int i = 0; i < 10; i++) {
+        if (v[i] != ' ') {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void exec_onda (estado_jogo *e) {
-    reset_atacantes(e->atacantes);
+    reset_atacantes(e);
     crono_inicia(&e->temp);
     for (;;) {
         desenha_terminal(*e);
         int c = lechar();
         exec_tecla(c, e);
-        if (e->fim) {
+        if (e->fim || e->perdeu) {
             return;
         }
         if(crono_parcial(&e->temp) >= temp_onda(*e)) {
             desloca_inimigos(e);
-            if (e->perdeu) {
-                return;
+            if (fim_ataque(e->atacantes) && e->inimigos_onda == 20 - e->noite*5) {
+                e->onda++;
+                break;
             }
             crono_inicia(&e->temp);
         }
     }
 }
 
-int main()
-{
+void vira_noite (estado_jogo *e) {
+    e->noite = 0;
+    int chance_dia = 100 - 20 * (e->onda - 1);
+    if (chance_dia < 20) {
+        chance_dia = 20;
+    }
+    int n = rand() % 100 + 1;
+    if (n > chance_dia) {
+        e->noite = 1;
+    } 
+}
+
+int main() {
     srand(time(NULL));
     configura_terminal();
-    estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, '0' };
+    estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, 0, '0' };
     for (;;) {
+        e.tiros = 30;
+        vira_noite(&e);
         if (e.perdeu || e.fim) {
             break;
         }

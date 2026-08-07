@@ -161,7 +161,7 @@ void exec_tecla(char c, estado_jogo *e) {
 
 float temp_onda (estado_jogo e) {
     float temp = 2.0;
-    for (int i = 0; i < e.onda; i++) {
+    for (int i = 1; i < e.onda; i++) {
         temp *= 0.9;
     }
     return temp;
@@ -174,9 +174,12 @@ void exec_onda (estado_jogo *e) {
         desenha_terminal(*e);
         int c = lechar();
         exec_tecla(c, e);
+        if (e->fim) {
+            return;
+        }
         if(crono_parcial(&e->temp) >= temp_onda(*e)) {
             desloca_inimigos(e);
-            if (e->perdeu || e->fim) {
+            if (e->perdeu) {
                 return;
             }
             crono_inicia(&e->temp);
@@ -188,7 +191,7 @@ int main()
 {
     srand(time(NULL));
     configura_terminal();
-    estado_jogo e = { 0, 30, 3, 0, 0, 0, 0, '0' };
+    estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, '0' };
     for (;;) {
         if (e.perdeu || e.fim) {
             break;

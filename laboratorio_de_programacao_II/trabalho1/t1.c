@@ -9,6 +9,8 @@ typedef struct {
     int pontos;
     int tiros;
     int escudos;
+    int onda;
+    int noite;
 
     int perdeu;
     int fim;
@@ -119,9 +121,21 @@ void troca_arma (estado_jogo *e) {
         e->arma++;
     }
 }
+
 void atira (estado_jogo *e) {
-    
+    for (int i = 0; i < 10; i++) {
+        if (e->atacantes[i] == e->arma || (e->atacantes[i] == 'N' && e->arma == 'n')) {
+            e->tiros--;
+            if (e->atacantes[i] != 'N') {
+                e->atacantes[i] = ' ';
+            } else {
+                e->atacantes[i] = 'n';
+            }
+            break;
+        }
+    }
 }
+
 void sonar (estado_jogo *e) {
     
 }
@@ -134,7 +148,7 @@ void exec_tecla(char c, estado_jogo *e) {
         case '\t':
             troca_arma(e);
             break;
-        case '\n':
+        case '\r':
             atira(e);
             break;
         case ' ':
@@ -152,7 +166,7 @@ void exec_onda (estado_jogo *e) {
         desenha_terminal(*e);
         int c = lechar();
         exec_tecla(c, e);
-        if(crono_parcial(&e->temp) >= 0.5) {
+        if(crono_parcial(&e->temp) >= 2.0 * (1 - (e->onda/10.0))) {
             desloca_inimigos(e);
             if (e->perdeu || e->fim) {
                 return;
@@ -166,7 +180,7 @@ int main()
 {
     srand(time(NULL));
     configura_terminal();
-    estado_jogo e = { 0, 30, 3, 0, 0, '0' };
+    estado_jogo e = { 0, 30, 3, 0, 0, 0, 0, '0' };
     for (;;) {
         if (e.perdeu || e.fim) {
             break;

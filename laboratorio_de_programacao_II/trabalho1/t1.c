@@ -3,6 +3,8 @@
 #include <time.h>
 #include <unistd.h>
 
+typedef struct timespec crono;
+
 typedef struct {
     int pontos;
     int tiros;
@@ -10,6 +12,7 @@ typedef struct {
     int escudos;
 
     int perdeu;
+    crono temp;
 
     char atacantes[10];
 } estado_jogo;
@@ -39,6 +42,25 @@ char lechar()
     char c;
     if (fread(&c, 1, 1, stdin) == 1) return c;
     return 0;
+}
+
+//TEMPO
+
+// inicializa um cronômetro com a hora atual
+void crono_inicia(crono *c)
+{
+    clock_gettime(CLOCK_MONOTONIC, c);
+}
+
+// retorna o tempo passado desde que o cronômetro *c foi iniciado, em segundos
+double crono_parcial(crono *c)
+{
+    crono agora;
+    clock_gettime(CLOCK_MONOTONIC, &agora);
+
+    double segundos = agora.tv_sec - c->tv_sec;
+    double nanosegundos = agora.tv_nsec - c->tv_nsec;
+    return segundos + 1e-9 * nanosegundos;
 }
 
 // DESENHO DA TELA
@@ -90,15 +112,18 @@ void reset_atacantes (char v[10]) {
 
 void exec_onda (estado_jogo *e) {
     reset_atacantes(e->atacantes);
-    for (int i = 0; i < 15; i++) {
+    crono_inicia(&e->temp);
+    for (;;) {
+        desenha_terminal(*e);
         int c = lechar();
         if (c == 'q') break;
-        desenha_terminal(*e);
-        desloca_inimigos(e);
-        if (e->perdeu == 1) {
-            return;
+        if(crono_parcial(&e->temp) >= 0.5) {
+            desloca_inimigos(e);
+            if (e->perdeu == 1) {
+                return;
+            }
+            crono_inicia(&e->temp);
         }
-        usleep(500000);
     }
 }
 
@@ -107,7 +132,6 @@ int main()
     srand(time(NULL));
     configura_terminal();
     estado_jogo e = { 0, 30, 0, 3, 0 };
-
     for (;;) {
         if (e.perdeu == 1) {
             printf("Você perdeu!");

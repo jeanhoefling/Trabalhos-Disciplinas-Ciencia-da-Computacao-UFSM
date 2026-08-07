@@ -8,13 +8,15 @@ typedef struct timespec crono;
 typedef struct {
     int pontos;
     int tiros;
-    int arma;
     int escudos;
 
     int perdeu;
-    crono temp;
+    int fim;
 
+    char arma;
     char atacantes[10];
+
+    crono temp;
 } estado_jogo;
 
 //TERMINAL E LEITURA DE TECLAS
@@ -65,18 +67,14 @@ double crono_parcial(crono *c)
 
 // DESENHO DA TELA
 void desenha_terminal(estado_jogo e) {
-    printf("%d %d %d", e.pontos, e.tiros, e.arma);
+    printf("%d %d %c", e.pontos, e.tiros, e.arma);
     for (int i = 1; i <= e.escudos; i++) {
         printf(")");
     }
     for (int i = 0; i < 10; i++) {
-        if (e.atacantes[i] == 0) {
-            printf(" ");
-        } else {
-            printf("%c", e.atacantes[i]);
-        }
+        printf("%c", e.atacantes[i]);
     }
-    printf("\n");
+    printf("\r");
 }
 
 //DINAMICA DO JOGO
@@ -110,16 +108,53 @@ void reset_atacantes (char v[10]) {
     }
 }
 
+void troca_arma (estado_jogo *e) {
+    if (e->arma == '9') {
+        e->arma = 'n';
+    }
+    else if (e->arma == 'n') {
+        e->arma = '0';
+    }
+    else {
+        e->arma++;
+    }
+}
+void atira (estado_jogo *e) {
+    
+}
+void sonar (estado_jogo *e) {
+    
+}
+
+void exec_tecla(char c, estado_jogo *e) {
+    switch (c) {
+        case 27:
+            e->fim = 1;
+            break;
+        case '\t':
+            troca_arma(e);
+            break;
+        case '\n':
+            atira(e);
+            break;
+        case ' ':
+            sonar(e);
+            break;
+        default:
+            break;
+    }
+}
+
 void exec_onda (estado_jogo *e) {
     reset_atacantes(e->atacantes);
     crono_inicia(&e->temp);
     for (;;) {
         desenha_terminal(*e);
         int c = lechar();
-        if (c == 'q') break;
+        exec_tecla(c, e);
         if(crono_parcial(&e->temp) >= 0.5) {
             desloca_inimigos(e);
-            if (e->perdeu == 1) {
+            if (e->perdeu || e->fim) {
                 return;
             }
             crono_inicia(&e->temp);
@@ -131,13 +166,15 @@ int main()
 {
     srand(time(NULL));
     configura_terminal();
-    estado_jogo e = { 0, 30, 0, 3, 0 };
+    estado_jogo e = { 0, 30, 3, 0, 0, '0' };
     for (;;) {
-        if (e.perdeu == 1) {
-            printf("Você perdeu!");
+        if (e.perdeu || e.fim) {
             break;
         }
         exec_onda(&e);
+    }
+    if (e.perdeu) {
+        printf("Você perdeu!");
     }
     normaliza_terminal();
 }

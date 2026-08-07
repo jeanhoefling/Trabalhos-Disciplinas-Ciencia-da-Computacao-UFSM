@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 typedef struct {
     int pontos;
     int tiros;
     int arma;
     int escudos;
-    int atacantes[10];
+    char atacantes[10];
 } estado_jogo;
 
 //TERMINAL E LEITURA DE TECLAS
@@ -39,10 +40,8 @@ char lechar()
 // DESENHO DA TELA
 void desenha_terminal(estado_jogo e) {
     printf("%d %d %d", e.pontos, e.tiros, e.arma);
-    for (int i = 1; i <= 3; i++) {
-        if (i <= e.escudos) {
-            printf(")");
-        }
+    for (int i = 1; i <= e.escudos; i++) {
+        printf(")");
     }
     for (int i = 0; i < 10; i++) {
         if (e.atacantes[i] == 0) {
@@ -54,8 +53,19 @@ void desenha_terminal(estado_jogo e) {
     printf("\n");
 }
 
+//DINAMICA DO JOGO
+char gera_inimigo () {
+    int num = rand() % 11;
+    if (num == 10) {
+        return 'N';
+    } else {
+        return '0' + num;
+    }
+}
+
 int main()
 {
+    srand(time(NULL));
     configura_terminal();
     estado_jogo e = { 0, 30, 0, 3, {0} };
 

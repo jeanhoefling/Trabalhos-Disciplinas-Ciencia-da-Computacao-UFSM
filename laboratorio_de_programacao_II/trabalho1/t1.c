@@ -1,12 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 typedef struct {
     int pontos;
     int tiros;
     int arma;
     int escudos;
+
+    int perdeu;
+
     char atacantes[10];
 } estado_jogo;
 
@@ -47,7 +51,7 @@ void desenha_terminal(estado_jogo e) {
         if (e.atacantes[i] == 0) {
             printf(" ");
         } else {
-            printf("%d", e.atacantes[i]);
+            printf("%c", e.atacantes[i]);
         }
     }
     printf("\n");
@@ -63,18 +67,53 @@ char gera_inimigo () {
     }
 }
 
+void desloca_inimigos (estado_jogo *e) {
+    if (e->atacantes[0] != ' ') {
+        if (e->escudos == 0) {
+            e->perdeu = 1;
+            return;
+        } else {
+            e->escudos--;
+        }
+    }
+    for (int i = 0; i < 9; i++) {
+        e->atacantes[i] = e->atacantes[i+1];
+    }
+    e->atacantes[9] = gera_inimigo();
+}
+
+void reset_atacantes (char v[10]) {
+    for (int i = 0; i < 10; i++) {
+        v[i] = ' ';
+    }
+}
+
+void exec_onda (estado_jogo *e) {
+    reset_atacantes(e->atacantes);
+    for (int i = 0; i < 15; i++) {
+        int c = lechar();
+        if (c == 'q') break;
+        desenha_terminal(*e);
+        desloca_inimigos(e);
+        if (e->perdeu == 1) {
+            return;
+        }
+        usleep(500000);
+    }
+}
+
 int main()
 {
     srand(time(NULL));
     configura_terminal();
-    estado_jogo e = { 0, 30, 0, 3, {0} };
+    estado_jogo e = { 0, 30, 0, 3, 0 };
 
     for (;;) {
-        int c = lechar();
-
-        desenha_terminal(e);
-
-        if (c == 'q') break;
+        if (e.perdeu == 1) {
+            printf("Você perdeu!");
+            break;
+        }
+        exec_onda(&e);
     }
     normaliza_terminal();
 }

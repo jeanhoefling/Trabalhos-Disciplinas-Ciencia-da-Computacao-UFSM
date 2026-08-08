@@ -81,12 +81,23 @@ void desenha_terminal(estado_jogo e) {
 }
 
 //DINAMICA DO JOGO
-char gera_inimigo () {
-    int num = rand() % 11;
-    if (num == 10) {
-        return 'N';
-    } else {
-        return '0' + num;
+char gera_inimigo (estado_jogo *e) {
+    int num;
+    if (!e->noite) {
+        num = rand() % 11;
+        if (num == 10) {
+            return 'N';
+        } else {
+            return '0' + num;
+        }
+    }
+    else {
+        num = rand() % 6;
+        if (num == 5) {
+            return 'N';
+        } else {
+            return '0' + num * 2;
+        }
     }
 }
 
@@ -103,7 +114,7 @@ void desloca_inimigos (estado_jogo *e) {
         e->atacantes[i] = e->atacantes[i+1];
     }
     if (e->inimigos_onda < 20 - (e->noite * 5)) {
-        e->atacantes[9] = gera_inimigo();
+        e->atacantes[9] = gera_inimigo(e);
         e->inimigos_onda++;
     } else {
         e->atacantes[9] = ' ';
@@ -118,14 +129,14 @@ void reset_atacantes (estado_jogo *e) {
 }
 
 void troca_arma (estado_jogo *e) {
-    if (e->arma == '9') {
+    if ((e->arma == '9' && !(e->noite)) || (e->arma == '8' &&(e->noite)) ) {
         e->arma = 'n';
     }
     else if (e->arma == 'n') {
         e->arma = '0';
     }
     else {
-        e->arma++;
+        e->arma += 1 + e->noite;
     }
 }
 

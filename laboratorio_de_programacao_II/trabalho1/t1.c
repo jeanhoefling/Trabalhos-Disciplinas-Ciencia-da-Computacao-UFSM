@@ -110,14 +110,14 @@ void desloca_inimigos (estado_jogo *e) {
             e->escudos--;
         }
     }
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 9 - e->noite * 5; i++) {
         e->atacantes[i] = e->atacantes[i+1];
     }
     if (e->inimigos_onda < 20 - (e->noite * 5)) {
-        e->atacantes[9] = gera_inimigo(e);
+        e->atacantes[9 - e->noite * 5] = gera_inimigo(e);
         e->inimigos_onda++;
     } else {
-        e->atacantes[9] = ' ';
+        e->atacantes[9 - e->noite * 5] = ' ';
     }
 }
 
@@ -219,14 +219,14 @@ void exec_onda (estado_jogo *e) {
 }
 
 void vira_noite (estado_jogo *e) {
-    e->noite = 0;
+    e->noite = 1;
     int chance_dia = 100 - 20 * (e->onda - 1);
     if (chance_dia < 20) {
         chance_dia = 20;
     }
     int n = rand() % 100 + 1;
     if (n > chance_dia) {
-        e->noite = 1;
+        e->noite = 0;
     } 
 }
 

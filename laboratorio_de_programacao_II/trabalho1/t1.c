@@ -230,17 +230,28 @@ void vira_noite (estado_jogo *e) {
     } 
 }
 
+void pontos_onda (estado_jogo *e) {
+    e->pontos += 2 * e->tiros;
+    e->pontos += 10 * e->escudos;
+}
+
+void recarrega (estado_jogo *e) {
+    e->tiros = 30;
+    e->escudos = 3;
+}
+
 int main() {
     srand(time(NULL));
     configura_terminal();
     estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, 0, '0' };
     for (;;) {
-        e.tiros = 30;
-        vira_noite(&e);
         if (e.perdeu || e.fim) {
             break;
         }
+        recarrega(&e);
+        vira_noite(&e);
         exec_onda(&e);
+        pontos_onda(&e);
     }
     if (e.perdeu) {
         printf("Você perdeu!");

@@ -140,11 +140,11 @@ void troca_arma (estado_jogo *e) {
     }
 }
 
-int pontos_kill (int i, char c) {
-    if (c == 'n') {
-        return 2 * (10 - i);
+int pontos_kill (estado_jogo *e, int i) {
+    if (e->atacantes[i] == 'n') {
+        e->pontos += 2 * (10 - i - e->noite * 5);
     } else {
-        return (10 - i);
+        e->pontos += 10 - i - e->noite * 5;
     }
 }
 
@@ -156,7 +156,7 @@ void atira (estado_jogo *e) {
         if (e->atacantes[i] == e->arma || (e->atacantes[i] == 'N' && e->arma == 'n')) {
             e->tiros--;
             if (e->atacantes[i] != 'N') {
-                e->pontos += pontos_kill(i, e->atacantes[i]);
+                pontos_kill(e, i);
                 e->atacantes[i] = ' ';
             } else {
                 e->atacantes[i] = 'n';
@@ -240,8 +240,8 @@ void vira_noite (estado_jogo *e) {
 }
 
 void pontos_onda (estado_jogo *e) {
-    e->pontos += 2 * e->tiros;
-    e->pontos += 10 * e->escudos;
+    e->pontos += 2 * e->tiros * (e->noite + 1);
+    e->pontos += 10 * e->escudos * (e->noite + 1);
 }
 
 void recarrega (estado_jogo *e) {

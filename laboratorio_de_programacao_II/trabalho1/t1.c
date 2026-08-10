@@ -140,6 +140,14 @@ void troca_arma (estado_jogo *e) {
     }
 }
 
+int pontos_kill (int i, char c) {
+    if (c == 'n') {
+        return 2 * (10 - i);
+    } else {
+        return (10 - i);
+    }
+}
+
 void atira (estado_jogo *e) {
     if (e->tiros <= 0) {
         return;
@@ -148,6 +156,7 @@ void atira (estado_jogo *e) {
         if (e->atacantes[i] == e->arma || (e->atacantes[i] == 'N' && e->arma == 'n')) {
             e->tiros--;
             if (e->atacantes[i] != 'N') {
+                e->pontos += pontos_kill(i, e->atacantes[i]);
                 e->atacantes[i] = ' ';
             } else {
                 e->atacantes[i] = 'n';
@@ -219,14 +228,14 @@ void exec_onda (estado_jogo *e) {
 }
 
 void vira_noite (estado_jogo *e) {
-    e->noite = 1;
+    e->noite = 0;
     int chance_dia = 100 - 20 * (e->onda - 1);
     if (chance_dia < 20) {
         chance_dia = 20;
     }
     int n = rand() % 100 + 1;
     if (n > chance_dia) {
-        e->noite = 0;
+        e->noite = 1;
     } 
 }
 

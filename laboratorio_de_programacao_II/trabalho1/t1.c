@@ -14,7 +14,6 @@ typedef struct {
     int noite;
     int inimigos_onda;
 
-    int perdeu;
     int fim;
 
     char arma;
@@ -122,7 +121,7 @@ char gera_inimigo (estado_jogo *e) {
 void desloca_inimigos (estado_jogo *e) {
     if (e->esc_atac[e->escudos] != ' ') {
         if (e->escudos == 0) {
-            e->perdeu = 1;
+            e->fim = 1;
             return;
         } else {
             e->esc_atac[e->escudos - 1] = ' ';
@@ -258,7 +257,7 @@ void exec_onda (estado_jogo *e) {
         desenha_terminal(*e);
         int c = lechar();
         exec_tecla(c, e);
-        if (e->fim || e->perdeu) {
+        if (e->fim) {
             return;
         }
         if(crono_parcial(&e->temp) >= temp_onda(*e)) {
@@ -323,7 +322,7 @@ void tchau (int p[3], int pontos) {
     printf("---Fim do jogo---\nPontuação Final: %d\n\n----Ranking----\nTOP 1: %d\nTOP 2: %d\nTOP 3: %d\n", pontos, p[0], p[1], p[2]);
 }
 
-int escreve_arquivo (FILE *arq, int pontos) {
+void escreve_arquivo (FILE *arq, int pontos) {
     int p[3];
     char linha[100];
     rewind(arq);
@@ -357,7 +356,7 @@ void tela_fonda(estado_jogo *e) {
         c = lechar();
     } while (c != 27 && c != 'r');
     if (c == 27) {
-        e->fim;
+        e->fim = 1;
     }
     system("clear");
 }
@@ -376,23 +375,18 @@ void fim_onda (estado_jogo *e) {
 int main() {
     srand(time(NULL));
     FILE *arq = arquivo_pontos();
-    if (arq == NULL) {
-        return 1;
-    }
     configura_terminal();
-    estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, 0, '0' };
+    estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, '0' };
     for (;;) {
         exec_onda(&e);
         pontos_onda(&e);
-        if (e.perdeu || e.fim) {
+        if (e.fim) {
             som_fjogo();
             break;
         }
         fim_onda(&e);
     }
-    if (e.perdeu) {
-        printf("Você perdeu!\n");
-    }
     normaliza_terminal();
     escreve_arquivo(arq, e.pontos);
+    fclose(arq);
 }

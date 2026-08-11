@@ -18,7 +18,7 @@ typedef struct {
     int fim;
 
     char arma;
-    char atacantes[10];
+    char esc_atac[13];
 
     crono temp;
 } estado_jogo;
@@ -72,11 +72,8 @@ double crono_parcial(crono *c)
 // DESENHO DA TELA
 void desenha_terminal(estado_jogo e) {
     printf("%d %d %c", e.pontos, e.tiros, e.arma);
-    for (int i = 1; i <= e.escudos; i++) {
-        printf(")");
-    }
-    for (int i = 0; i < 10; i++) {
-        printf("%c", e.atacantes[i]);
+    for (int i = 0; i < 13; i++) {
+        printf("%c", e.esc_atac[i]);
     }
     printf("\r");
 }
@@ -86,6 +83,10 @@ void som_especifico (char c) {
     char rota[30];
     if (c == 'N' || c == 'n') {
         sprintf(rota, "aplay -q ./sons/11.3.wav &");
+    } else if (c == ')') {
+        sprintf(rota, "aplay -q ./sons/12.3.wav &");
+    } else if (c == ' ') {
+        sprintf(rota, "aplay -q ./sons/x.3.wav &");
     } else {
         sprintf(rota, "aplay -q ./sons/%c.3.wav &", c);
     }
@@ -116,28 +117,33 @@ char gera_inimigo (estado_jogo *e) {
 }
 
 void desloca_inimigos (estado_jogo *e) {
-    if (e->atacantes[0] != ' ') {
+    if (e->esc_atac[e->escudos] != ' ') {
         if (e->escudos == 0) {
             e->perdeu = 1;
             return;
         } else {
+            e->esc_atac[e->escudos - 1] = ' ';
+            e->esc_atac[e->escudos] = ' ';
             e->escudos--;
         }
     }
-    for (int i = 0; i < 9 - e->noite * 5; i++) {
-        e->atacantes[i] = e->atacantes[i+1];
+    for (int i = e->escudos; i < 12 - e->noite * 5; i++) {
+        e->esc_atac[i] = e->esc_atac[i+1];
     }
     if (e->inimigos_onda < 20 - (e->noite * 5)) {
-        e->atacantes[9 - e->noite * 5] = gera_inimigo(e);
+        e->esc_atac[12 - e->noite * 5] = gera_inimigo(e);
         e->inimigos_onda++;
     } else {
-        e->atacantes[9 - e->noite * 5] = ' ';
+        e->esc_atac[12 - e->noite * 5] = ' ';
     }
 }
 
 void reset_atacantes (estado_jogo *e) {
-    for (int i = 0; i < 10; i++) {
-        e->atacantes[i] = ' ';
+    for (int i = 0; i < e->escudos; i++) {
+        e->esc_atac[i] = ')';
+    }
+    for (int i = e->escudos; i < 13; i++) {
+        e->esc_atac[i] = ' ';
     }
     e->inimigos_onda = 0;
 }
@@ -156,10 +162,10 @@ void troca_arma (estado_jogo *e) {
 }
 
 void pontos_kill (estado_jogo *e, int i) {
-    if (e->atacantes[i] == 'n') {
-        e->pontos += 2 * (10 - i - e->noite * 5);
+    if (e->esc_atac[i] == 'n') {
+        e->pontos += 2 * (13 - i - e->noite * 5);
     } else {
-        e->pontos += 10 - i - e->noite * 5;
+        e->pontos += 13 - i - e->noite * 5;
     }
 }
 
@@ -168,13 +174,13 @@ void atira (estado_jogo *e) {
         return;
     }
     e->tiros--;
-    for (int i = 0; i < 10; i++) {
-        if (e->atacantes[i] == e->arma || (e->atacantes[i] == 'N' && e->arma == 'n')) {
-            if (e->atacantes[i] != 'N') {
+    for (int i = e->escudos; i < 13; i++) {
+        if (e->esc_atac[i] == e->arma || (e->esc_atac[i] == 'N' && e->arma == 'n')) {
+            if (e->esc_atac[i] != 'N') {
                 pontos_kill(e, i);
-                e->atacantes[i] = ' ';
+                e->esc_atac[i] = ' ';
             } else {
-                e->atacantes[i] = 'n';
+                e->esc_atac[i] = 'n';
             }
             som_especifico(e->arma);
             return;
@@ -184,7 +190,9 @@ void atira (estado_jogo *e) {
 }
 
 void sonar (estado_jogo *e) {
-    
+    for (int i = 0; i < 13; i++) {
+        som_especifico(e->esc_atac[i]);
+    }
 }
 
 void exec_tecla(char c, estado_jogo *e) {
@@ -214,9 +222,9 @@ float temp_onda (estado_jogo e) {
     return temp;
 }
 
-int fim_ataque (char v[10]) {
-    for (int i = 0; i < 10; i++) {
-        if (v[i] != ' ') {
+int fim_ataque (estado_jogo e) {
+    for (int i = e.escudos; i < 13; i++) {
+        if (e.esc_atac[i] != ' ') {
             return 0;
         }
     }
@@ -235,7 +243,7 @@ void exec_onda (estado_jogo *e) {
         }
         if(crono_parcial(&e->temp) >= temp_onda(*e)) {
             desloca_inimigos(e);
-            if (fim_ataque(e->atacantes) && e->inimigos_onda == 20 - e->noite*5) {
+            if (fim_ataque(*e) && e->inimigos_onda == 20 - e->noite*5) {
                 e->onda++;
                 break;
             }
@@ -291,8 +299,8 @@ FILE * arquivo_pontos() {
 }
 
 void tchau (int p[3], int pontos) {
+    system("clear");
     printf("---Fim do jogo---\nPontuação Final: %d\n\n----Ranking----\nTOP 1: %d\nTOP 2: %d\nTOP 3: %d\n", pontos, p[0], p[1], p[2]);
-
 }
 
 int escreve_arquivo (FILE *arq, int pontos) {
@@ -323,9 +331,11 @@ void som_fonda() {
     system("aplay -q ./sons/1.3.wav ./sons/5.3.wav ./sons/9.3.wav &");
 }
 
+void som_fjogo() {
+    system("aplay -q ./sons/1.3.wav ./sons/3.3.wav ./sons/5.3.wav ./sons/7.3.wav ./sons/9.3.wav &");
+}
+
 void fim_onda (estado_jogo *e) {
-    printf("Fim da onda, proxima começando em 3 segundos:");
-    pontos_onda(e);
     som_fonda();
     recarrega(e);
     vira_noite(e);
@@ -341,14 +351,16 @@ int main() {
     configura_terminal();
     estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, 0, '0' };
     for (;;) {
+        exec_onda(&e);
+        pontos_onda(&e);
         if (e.perdeu || e.fim) {
             break;
+            som_fjogo();
         }
-        exec_onda(&e);
         fim_onda(&e);
     }
     if (e.perdeu) {
-        printf("Você perdeu!");
+        printf("Você perdeu!\n");
     }
     normaliza_terminal();
     escreve_arquivo(arq, e.pontos);

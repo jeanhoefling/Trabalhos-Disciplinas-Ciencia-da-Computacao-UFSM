@@ -335,7 +335,7 @@ FILE * arquivo_pontos() {
 // Faz o print de fim da partida
 void tchau (int p[3], int pontos) {
     system("clear");
-    printf("---Fim do jogo---\nPontuação Final: %d\n\n----Ranking----\nTOP 1: %d\nTOP 2: %d\nTOP 3: %d\n", pontos, p[0], p[1], p[2]);
+    printf("---Fim da partida---\nPontuação Final: %d\n\n----Ranking----\nTOP 1: %d\nTOP 2: %d\nTOP 3: %d\n", pontos, p[0], p[1], p[2]);
 }
 
 // Atualiza o ranking de pontuacoes do arquivo
@@ -380,7 +380,7 @@ void tela_fonda(estado_jogo *e) {
 }
 
 // Toca o som de fim de partida
-void som_fjogo() {
+void som_fpartida() {
     system("aplay -q ./sons/1.3.wav ./sons/3.3.wav ./sons/5.3.wav ./sons/7.3.wav ./sons/9.3.wav &");
 }
 
@@ -394,21 +394,37 @@ void fim_onda (estado_jogo *e) {
     vira_noite(e);
 }
 
-int main() {
-    srand(time(NULL));
-    FILE *arq = arquivo_pontos();
-    configura_terminal();
+void partida (FILE *arq) {
     estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, '0' };
     for (;;) {
         exec_onda(&e);
         pontos_onda(&e);
         if (e.fim) {
-            som_fjogo();
+            som_fpartida();
             break;
         }
         fim_onda(&e);
     }
-    normaliza_terminal();
     escreve_arquivo(arq, e.pontos);
+}
+
+int main() {
+    srand(time(NULL));
+    FILE *arq = arquivo_pontos();
+    configura_terminal();
+    int c;
+    for (;;) {
+        system("clear");
+        partida(arq);
+        printf("Deseja jogar novamente? (s/n)");
+        do {
+            c = lechar();
+        } while (c != 'n' && c != 's');
+        if (c == 'n') {
+            break;
+        }
+    }
+    printf("\n");
+    normaliza_terminal();
     fclose(arq);
 }

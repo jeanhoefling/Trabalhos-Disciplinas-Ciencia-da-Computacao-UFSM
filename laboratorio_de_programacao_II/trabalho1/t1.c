@@ -82,24 +82,37 @@ void desenha_terminal(estado_jogo e) {
 }
 
 //DINAMICA DO JOGO
+void som_especifico (char c) {
+    char rota[30];
+    if (c == 'N' || c == 'n') {
+        sprintf(rota, "aplay -q ./sons/11.3.wav &");
+    } else {
+        sprintf(rota, "aplay -q ./sons/%c.3.wav &", c);
+    }
+    system(rota);
+}
+
 char gera_inimigo (estado_jogo *e) {
     int num;
+    char inimigo;
     if (!e->noite) {
         num = rand() % 11;
         if (num == 10) {
-            return 'N';
+            inimigo = 'N';
         } else {
-            return '0' + num;
+            inimigo = '0' + num;
         }
     }
     else {
         num = rand() % 6;
         if (num == 5) {
-            return 'N';
+            inimigo = 'N';
         } else {
-            return '0' + num * 2;
+            inimigo = '0' + num * 2;
         }
     }
+    som_especifico(inimigo);
+    return inimigo;
 }
 
 void desloca_inimigos (estado_jogo *e) {
@@ -139,6 +152,7 @@ void troca_arma (estado_jogo *e) {
     else {
         e->arma += 1 + e->noite;
     }
+    som_especifico(e->arma);
 }
 
 void pontos_kill (estado_jogo *e, int i) {
@@ -162,9 +176,11 @@ void atira (estado_jogo *e) {
             } else {
                 e->atacantes[i] = 'n';
             }
-            break;
+            som_especifico(e->arma);
+            return;
         }
     }
+    som_especifico('x');
 }
 
 void sonar (estado_jogo *e) {
@@ -261,7 +277,7 @@ FILE * arquivo_pontos() {
     printf("Digite o nome desse arquivo (até 50 caracteres): ");
     fgets(arq_name, sizeof(arq_name), stdin); 
     arq_name[strcspn(arq_name, "\n")] = '\0';
-    FILE *arq = fopen(arq_name, "r+");
+    FILE *arq = r == 's' ? fopen(arq_name, "r+") : fopen(arq_name, "w+");
     if (arq == NULL) {
         printf("Arquivo inválido");
         return NULL;
@@ -269,11 +285,17 @@ FILE * arquivo_pontos() {
         if (r == 'n') {
             fprintf(arq, "0\n0\n0\n");
         }
+        system("clear");
         return arq;
     }
 }
 
-void escreve_arquivo (FILE *arq, int pontos) {
+void tchau (int p[3], int pontos) {
+    printf("---Fim do jogo---\nPontuação Final: %d\n\n----Ranking----\nTOP 1: %d\nTOP 2: %d\nTOP 3: %d\n", pontos, p[0], p[1], p[2]);
+
+}
+
+int escreve_arquivo (FILE *arq, int pontos) {
     int p[3];
     char linha[100];
     rewind(arq);
@@ -294,6 +316,20 @@ void escreve_arquivo (FILE *arq, int pontos) {
     }
     rewind(arq);
     fprintf(arq, "%d\n%d\n%d", p[0], p[1], p[2]);
+    tchau(p, pontos);
+}
+
+void som_fonda() {
+    system("aplay -q ./sons/1.3.wav ./sons/5.3.wav ./sons/9.3.wav &");
+}
+
+void fim_onda (estado_jogo *e) {
+    printf("Fim da onda, proxima começando em 3 segundos:");
+    pontos_onda(e);
+    som_fonda();
+    recarrega(e);
+    vira_noite(e);
+    sleep(3);
 }
 
 int main() {
@@ -308,10 +344,8 @@ int main() {
         if (e.perdeu || e.fim) {
             break;
         }
-        recarrega(&e);
-        vira_noite(&e);
         exec_onda(&e);
-        pontos_onda(&e);
+        fim_onda(&e);
     }
     if (e.perdeu) {
         printf("Você perdeu!");

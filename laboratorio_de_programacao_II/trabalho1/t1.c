@@ -71,9 +71,12 @@ double crono_parcial(crono *c)
 
 // DESENHO DA TELA
 void desenha_terminal(estado_jogo e) {
-    printf("%d %d %c", e.pontos, e.tiros, e.arma);
-    for (int i = 0; i < 13; i++) {
-        printf("%c", e.esc_atac[i]);
+    printf("%d ", e.pontos);
+    if (!e.noite) {
+        printf("%d %c", e.tiros, e.arma);
+        for (int i = 0; i < 13; i++) {
+            printf("%c", e.esc_atac[i]);
+        }
     }
     printf("\r");
 }
@@ -163,9 +166,9 @@ void troca_arma (estado_jogo *e) {
 
 void pontos_kill (estado_jogo *e, int i) {
     if (e->esc_atac[i] == 'n') {
-        e->pontos += 2 * (13 - i - e->noite * 5);
+        e->pontos += 2 * (13 - i - e->noite * 5) * (e->noite + 1);
     } else {
-        e->pontos += 13 - i - e->noite * 5;
+        e->pontos += (13 - i - e->noite * 5) * (e->noite + 1);
     }
 }
 
@@ -190,9 +193,22 @@ void atira (estado_jogo *e) {
 }
 
 void sonar (estado_jogo *e) {
+    char rota_completa[250] = "aplay -q ";
+    char rota[20];
     for (int i = 0; i < 13; i++) {
-        som_especifico(e->esc_atac[i]);
+        if (e->esc_atac[i] == 'N' || e->esc_atac[i] == 'n') {
+            sprintf(rota, "./sons/11.3.wav ");
+        } else if (e->esc_atac[i] == ')') {
+            sprintf(rota, "./sons/12.3.wav ");
+        } else if (e->esc_atac[i] == ' ') {
+            sprintf(rota, "./sons/x.3.wav ");
+        } else {
+            sprintf(rota, "./sons/%c.3.wav ", e->esc_atac[i]);
+        }
+        strcat(rota_completa, rota);
     }
+    strcat(rota_completa, "&");
+    system(rota_completa);
 }
 
 void exec_tecla(char c, estado_jogo *e) {
@@ -219,7 +235,11 @@ float temp_onda (estado_jogo e) {
     for (int i = 1; i < e.onda; i++) {
         temp *= 0.9;
     }
-    return temp;
+    if (e.noite) {
+        return temp * 3;
+    } else {
+        return temp;
+    }
 }
 
 int fim_ataque (estado_jogo e) {
@@ -272,6 +292,7 @@ void pontos_onda (estado_jogo *e) {
 void recarrega (estado_jogo *e) {
     e->tiros = 30;
     e->escudos = 3;
+    e->arma = '0';
 }
 
 FILE * arquivo_pontos() {
@@ -354,8 +375,8 @@ int main() {
         exec_onda(&e);
         pontos_onda(&e);
         if (e.perdeu || e.fim) {
-            break;
             som_fjogo();
+            break;
         }
         fim_onda(&e);
     }

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
 
 typedef struct timespec crono;
 
@@ -140,7 +141,7 @@ void troca_arma (estado_jogo *e) {
     }
 }
 
-int pontos_kill (estado_jogo *e, int i) {
+void pontos_kill (estado_jogo *e, int i) {
     if (e->atacantes[i] == 'n') {
         e->pontos += 2 * (10 - i - e->noite * 5);
     } else {
@@ -152,9 +153,9 @@ void atira (estado_jogo *e) {
     if (e->tiros <= 0) {
         return;
     }
+    e->tiros--;
     for (int i = 0; i < 10; i++) {
         if (e->atacantes[i] == e->arma || (e->atacantes[i] == 'N' && e->arma == 'n')) {
-            e->tiros--;
             if (e->atacantes[i] != 'N') {
                 pontos_kill(e, i);
                 e->atacantes[i] = ' ';
@@ -249,8 +250,58 @@ void recarrega (estado_jogo *e) {
     e->escudos = 3;
 }
 
+FILE * arquivo_pontos() {
+    char r = 'z';
+    char arq_name[51];
+    while (r != 's' && r != 'n') {
+        printf("Você tem um arquivo de pontuações? (s/n)\n");
+        r = fgetc(stdin);
+        fgetc(stdin);
+    }
+    printf("Digite o nome desse arquivo (até 50 caracteres): ");
+    fgets(arq_name, sizeof(arq_name), stdin); 
+    arq_name[strcspn(arq_name, "\n")] = '\0';
+    FILE *arq = fopen(arq_name, "r+");
+    if (arq == NULL) {
+        printf("Arquivo inválido");
+        return NULL;
+    } else {
+        if (r == 'n') {
+            fprintf(arq, "0\n0\n0\n");
+        }
+        return arq;
+    }
+}
+
+void escreve_arquivo (FILE *arq, int pontos) {
+    int p[3];
+    char linha[100];
+    rewind(arq);
+    for (int i = 0; i < 3; i++) {
+        fgets(linha, sizeof(linha), arq);
+        linha[strcspn(linha, "\n")] = '\0';
+        p[i] = atoi(linha);
+    }
+    if (pontos >= p[0]) {
+        p[2] = p[1];
+        p[1] = p[0];
+        p[0] = pontos;
+    } else if (pontos >= p[1]) {
+        p[2] = p[1];
+        p[1] = pontos;
+    } else if (pontos >= p[2]) {
+        p[2] = pontos;
+    }
+    rewind(arq);
+    fprintf(arq, "%d\n%d\n%d", p[0], p[1], p[2]);
+}
+
 int main() {
     srand(time(NULL));
+    FILE *arq = arquivo_pontos();
+    if (arq == NULL) {
+        return 1;
+    }
     configura_terminal();
     estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, 0, '0' };
     for (;;) {
@@ -266,4 +317,5 @@ int main() {
         printf("Você perdeu!");
     }
     normaliza_terminal();
+    escreve_arquivo(arq, e.pontos);
 }

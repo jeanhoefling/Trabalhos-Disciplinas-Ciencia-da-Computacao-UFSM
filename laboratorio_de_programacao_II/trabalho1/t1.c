@@ -291,7 +291,6 @@ void pontos_onda (estado_jogo *e) {
 
 void recarrega (estado_jogo *e) {
     e->tiros = 30;
-    e->escudos = 3;
     e->arma = '0';
 }
 
@@ -348,8 +347,19 @@ int escreve_arquivo (FILE *arq, int pontos) {
     tchau(p, pontos);
 }
 
-void som_fonda() {
+void tela_fonda(estado_jogo *e) {
+    system("clear");
     system("aplay -q ./sons/1.3.wav ./sons/5.3.wav ./sons/9.3.wav &");
+    printf("---FIM DA ONDA %d---\nTIROS: %d\nESCUDOS: %d\nTOTAL DE PONTOS: %d", e->onda - 1, e->tiros, e->escudos, e->pontos);
+    printf("\n\nDigite 'r' se deseja continuar e 'esc' para finalizar");
+    int c;
+    do {
+        c = lechar();
+    } while (c != 27 && c != 'r');
+    if (c == 27) {
+        e->fim;
+    }
+    system("clear");
 }
 
 void som_fjogo() {
@@ -357,7 +367,7 @@ void som_fjogo() {
 }
 
 void fim_onda (estado_jogo *e) {
-    som_fonda();
+    tela_fonda(e);
     recarrega(e);
     vira_noite(e);
     sleep(3);

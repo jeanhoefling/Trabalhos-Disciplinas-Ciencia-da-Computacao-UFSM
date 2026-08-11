@@ -295,16 +295,19 @@ void vira_noite (estado_jogo *e) {
     } 
 }
 
+// Incrementa os pontos por escudos e tiros restantes da onda
 void pontos_onda (estado_jogo *e) {
     e->pontos += 2 * e->tiros * (e->noite + 1);
     e->pontos += 10 * e->escudos * (e->noite + 1);
 }
 
+// Recarrega os tiros e reseta a arma a cada onda
 void recarrega (estado_jogo *e) {
     e->tiros = 30;
     e->arma = '0';
 }
 
+// Realiza a abertura/criacao de um arquivo de ranking de pontuacoes
 FILE * arquivo_pontos() {
     char r = 'z';
     char arq_name[51];
@@ -329,11 +332,13 @@ FILE * arquivo_pontos() {
     }
 }
 
+// Faz o print de fim da partida
 void tchau (int p[3], int pontos) {
     system("clear");
     printf("---Fim do jogo---\nPontuação Final: %d\n\n----Ranking----\nTOP 1: %d\nTOP 2: %d\nTOP 3: %d\n", pontos, p[0], p[1], p[2]);
 }
 
+// Atualiza o ranking de pontuacoes do arquivo
 void escreve_arquivo (FILE *arq, int pontos) {
     int p[3];
     char linha[100];
@@ -358,6 +363,7 @@ void escreve_arquivo (FILE *arq, int pontos) {
     tchau(p, pontos);
 }
 
+// Exibe a tela de fim de onda, toca o som correspondente e pergunta se quer continuar
 void tela_fonda(estado_jogo *e) {
     system("clear");
     system("aplay -q ./sons/1.3.wav ./sons/5.3.wav ./sons/9.3.wav &");
@@ -373,15 +379,19 @@ void tela_fonda(estado_jogo *e) {
     system("clear");
 }
 
+// Toca o som de fim de partida
 void som_fjogo() {
     system("aplay -q ./sons/1.3.wav ./sons/3.3.wav ./sons/5.3.wav ./sons/7.3.wav ./sons/9.3.wav &");
 }
 
+// Chama todas as funcoes necessarias ao fim de cada onda
 void fim_onda (estado_jogo *e) {
     tela_fonda(e);
+    if (e->fim) {
+        return;
+    }
     recarrega(e);
     vira_noite(e);
-    sleep(3);
 }
 
 int main() {

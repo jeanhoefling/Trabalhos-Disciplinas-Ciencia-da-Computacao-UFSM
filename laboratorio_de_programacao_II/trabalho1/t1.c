@@ -68,7 +68,7 @@ double crono_parcial(crono *c)
     return segundos + 1e-9 * nanosegundos;
 }
 
-// DESENHO DA TELA
+// Desenha a tela do jogo (inimigos, pontos, escudos, etc...)
 void desenha_terminal(estado_jogo e) {
     printf("%d ", e.pontos);
     if (!e.noite) {
@@ -80,7 +80,7 @@ void desenha_terminal(estado_jogo e) {
     printf("\r");
 }
 
-//DINAMICA DO JOGO
+// Recebe um char que representa um tipo de inimigo, escudo, etc... e toca o som correspondente
 void som_especifico (char c) {
     char rota[30];
     if (c == 'N' || c == 'n') {
@@ -95,6 +95,7 @@ void som_especifico (char c) {
     system(rota);
 }
 
+// Gera um inimigo aleatorio (adaptada para dia/noite)
 char gera_inimigo (estado_jogo *e) {
     int num;
     char inimigo;
@@ -118,6 +119,7 @@ char gera_inimigo (estado_jogo *e) {
     return inimigo;
 }
 
+// Realiza o movimento dos atacantes e realiza o consumo de escudos/ataque bem sucedido
 void desloca_inimigos (estado_jogo *e) {
     if (e->esc_atac[e->escudos] != ' ') {
         if (e->escudos == 0) {
@@ -140,6 +142,7 @@ void desloca_inimigos (estado_jogo *e) {
     }
 }
 
+// Serve para resetar o vetor de atacantes/escudos
 void reset_atacantes (estado_jogo *e) {
     for (int i = 0; i < e->escudos; i++) {
         e->esc_atac[i] = ')';
@@ -150,6 +153,7 @@ void reset_atacantes (estado_jogo *e) {
     e->inimigos_onda = 0;
 }
 
+// Serve para trocar de arma (adaptada para dia/noite)
 void troca_arma (estado_jogo *e) {
     if ((e->arma == '9' && !(e->noite)) || (e->arma == '8' &&(e->noite)) ) {
         e->arma = 'n';
@@ -163,6 +167,7 @@ void troca_arma (estado_jogo *e) {
     som_especifico(e->arma);
 }
 
+// Realiza a soma de pontos ganhos por eliminar um atacante
 void pontos_kill (estado_jogo *e, int i) {
     if (e->esc_atac[i] == 'n') {
         e->pontos += 2 * (13 - i - e->noite * 5) * (e->noite + 1);
@@ -171,6 +176,7 @@ void pontos_kill (estado_jogo *e, int i) {
     }
 }
 
+// Funcao de atirar
 void atira (estado_jogo *e) {
     if (e->tiros <= 0) {
         return;
@@ -191,6 +197,7 @@ void atira (estado_jogo *e) {
     som_especifico('x');
 }
 
+// Funcao do sonar
 void sonar (estado_jogo *e) {
     char rota_completa[250] = "aplay -q ";
     char rota[20];
@@ -210,6 +217,7 @@ void sonar (estado_jogo *e) {
     system(rota_completa);
 }
 
+// Executa a acao correspondente a tecla recebida
 void exec_tecla(char c, estado_jogo *e) {
     switch (c) {
         case 27:
@@ -229,6 +237,7 @@ void exec_tecla(char c, estado_jogo *e) {
     }
 }
 
+// Calcula o intervalo de deslocamento dos atacantes (adaptado para dia/noite)
 float temp_onda (estado_jogo e) {
     float temp = 2.0;
     for (int i = 1; i < e.onda; i++) {
@@ -241,6 +250,7 @@ float temp_onda (estado_jogo e) {
     }
 }
 
+// Verifica se todos os atacantes foram neutralizados
 int fim_ataque (estado_jogo e) {
     for (int i = e.escudos; i < 13; i++) {
         if (e.esc_atac[i] != ' ') {
@@ -250,6 +260,7 @@ int fim_ataque (estado_jogo e) {
     return 1;
 }
 
+// Essa funcao executa a onda e chama todas as funcoes necessarias para seu funcionamento
 void exec_onda (estado_jogo *e) {
     reset_atacantes(e);
     crono_inicia(&e->temp);
@@ -271,6 +282,7 @@ void exec_onda (estado_jogo *e) {
     }
 }
 
+// Essa funcao faz o "sorteio" entre dia/noite
 void vira_noite (estado_jogo *e) {
     e->noite = 0;
     int chance_dia = 100 - 20 * (e->onda - 1);

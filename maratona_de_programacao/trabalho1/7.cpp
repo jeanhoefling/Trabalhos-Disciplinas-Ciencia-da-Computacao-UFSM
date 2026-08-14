@@ -1,0 +1,39 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    double n1, n2, n3, n4, m1, ne, nf;
+
+    cin >> n1 >> n2 >> n3 >> n4;
+
+    m1 = (n1 * 2 + n2 * 3 + n3 * 4 + n4) / 10;
+
+    printf("Media: %.1f\n", m1);
+
+    if (m1 >= 7) {
+        printf("Aluno aprovado.\n");
+    }
+    else if (m1 < 5) {
+        printf("Aluno reprovado.\n");
+    }
+    else {
+        printf("Aluno em exame.\n");
+
+        cin >> ne;
+
+        printf("Nota do exame: %.1f\n", ne);
+
+        nf = (ne + m1) / 2;
+
+        if (nf >= 5) {
+            printf("Aluno aprovado.\n");
+        }
+        else {
+            printf("Aluno reprovado.\n");
+        }
+
+        printf("Media final: %.1f\n", nf);
+    }
+
+    return 0;
+}

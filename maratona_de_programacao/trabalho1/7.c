@@ -1,8 +1,7 @@
 #include <stdio.h>
 
 int main() {
-    double n1, n2, n3, n4;
-    double m1, ne, nf;
+    double n1, n2, n3, n4, m1, ne, nf;
 
     scanf("%lf %lf %lf %lf", &n1, &n2, &n3, &n4);
 
@@ -10,10 +9,10 @@ int main() {
 
     printf("Media: %.1f\n", m1);
 
-    if (m1 >= 7.0) {
+    if (m1 >= 7) {
         printf("Aluno aprovado.\n");
     }
-    else if (m1 < 5.0) {
+    else if (m1 < 5) {
         printf("Aluno reprovado.\n");
     }
     else {
@@ -25,7 +24,7 @@ int main() {
 
         nf = (ne + m1) / 2;
 
-        if (nf >= 5.0) {
+        if (nf >= 5) {
             printf("Aluno aprovado.\n");
         }
         else {

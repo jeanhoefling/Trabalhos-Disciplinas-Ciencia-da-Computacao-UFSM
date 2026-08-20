@@ -105,8 +105,20 @@ char *s_strc(Str s)
 unichar s_ch(Str s, int pos)
 {
   s_ok(s);
-  //...
-  return UNI_INV;
+  int tam = s_tam(s);
+  if (pos > tam - 1 || pos < -tam) return UNI_INV;
+
+  byte *pos_unichar;
+  if (pos >= 0) {
+    pos_unichar = u8_avanca_unichar(s->s, pos);
+  }
+  else {
+    pos_unichar = u8_avanca_unichar(s->s, tam + pos);
+  }
+  unichar puni;
+  int tam_unichar = u8_nbytes_no_unichar_que_comeca_com(*pos_unichar);
+  u8_unichar_nos_bytes(tam_unichar, pos_unichar, &puni);
+  return puni;
 }
 
 Str s_substring(Str s, int pos, int tam)

@@ -173,7 +173,25 @@ int s_busca_c(Str s, int pos, Str sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
+
+  if (pos < 0) pos = s_tam(s) + pos + 1;
+
+  Str unichar_s, unichar_sb;
+  for (int i = pos; i < s_tam(s); i++) {
+    unichar_s = s_substring(s, i, 1);
+
+    for (int j = 0; j < s_tam(s); j++) {
+      unichar_sb = s_substring(sb, j, 1);
+      if (s_igual(unichar_s, unichar_sb)) {
+        s_destroi(unichar_s);
+        s_destroi(unichar_sb);
+        return i;
+      }
+      s_destroi(unichar_sb);
+    }
+    s_destroi(unichar_s);
+  }
+
   return -1;
 }
 

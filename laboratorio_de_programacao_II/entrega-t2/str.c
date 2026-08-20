@@ -47,7 +47,12 @@ static void s_ok(Str s)
 
 Str s_cria(char *strC)
 {
-  Str str = {NULL, 0, 0};
+  Str str = malloc(sizeof(struct str));
+  assert(str != NULL);
+
+  str->s = NULL;
+  str->b_uso = 0;
+  str->b_aloc = 0;
 
   if (strC == NULL) return str;
   int tam = strlen(strC);
@@ -125,7 +130,7 @@ Str s_substring(Str s, int pos, int tam)
 {
   s_ok(s);
   if (pos < -s_tam(s)) pos = 0;
-  else if (pos < 0) pos = stam(s) + pos + 1;
+  else if (pos < 0) pos = s_tam(s) + pos + 1;
   if (tam < 0) tam = s_tam(s);
   if (pos + tam - 1 > s_tam(s) - 1) tam = s_tam(s) - pos;
 
@@ -236,7 +241,9 @@ Str s_apara(Str s, Str sobras)
 void s_imprime(Str s)
 {
   s_ok(s);
-  //...
+  for (int i = 0; i < s->b_uso; i++) {
+    printf("%c", s->s[i]);
+  }
 }
 
 // Retorna uma nova string com o conteúdo do arquivo chamado nome.

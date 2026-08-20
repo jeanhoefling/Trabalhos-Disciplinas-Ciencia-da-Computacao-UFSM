@@ -9,7 +9,9 @@
 #define MIN_ALLOC 8    // alocação mínima
 
 struct str {
-  // ...
+  byte *s;
+  int b_uso;
+  int b_aloc;
 };
 
 // A memória para conter os bytes de uma string deve ser alocada e/ou
@@ -28,6 +30,15 @@ struct str {
 // aborta o programa se não tiver
 static void s_ok(Str s)
 {
+  if (s->s == NULL) {
+    assert(s->b_uso == 0);
+    assert(s->b_aloc == 0);
+  }
+  else {
+    assert(s->b_aloc >= MIN_ALLOC);
+    assert(s->b_uso <= s->b_aloc);
+    assert(u8_conta_unichar_nos_bytes(s->b_uso, s->s) != -1);
+  }
 }
 
 //...
@@ -36,10 +47,30 @@ static void s_ok(Str s)
 
 Str s_cria(char *strC)
 {
-  Str s = malloc(sizeof(*s));
-  assert(s != NULL);
-  //...
-  return s;
+  Str str = {NULL, 0, 0};
+
+  if (strC == NULL) return str;
+  int tam = strlen(strC);
+  if (tam == 0) return str;
+
+  if (u8_conta_unichar_nos_bytes(tam, (byte *)strC) == -1) return str;
+
+
+  int nb_aloc = MIN_ALLOC;
+  while (nb_aloc < tam) {
+    nb_aloc *= 2;
+  }
+  str->s = malloc(sizeof(byte) * nb_aloc);
+  assert(str->s != NULL);
+  for (int i = 0; i < tam; i++) {
+    str->s[i] = strC[i];
+  }
+
+
+  str->b_uso = tam;
+  str->b_aloc = nb_aloc;
+
+  return str;
 }
 
 void s_destroi(Str s)

@@ -124,8 +124,19 @@ unichar s_ch(Str s, int pos)
 Str s_substring(Str s, int pos, int tam)
 {
   s_ok(s);
-  //...
-  return s_cria("falta implementar s_substring!");
+  if (pos < -s_tam(s)) pos = 0;
+  else if (pos < 0) pos = stam(s) + pos + 1;
+  if (tam < 0) tam = s_tam(s);
+  if (pos + tam - 1 > s_tam(s) - 1) tam = s_tam(s) - pos;
+
+  byte *pos_ini = u8_avanca_unichar(s->s, pos);
+  byte *pos_fim = u8_avanca_unichar(s->s, pos + tam);
+  char strC[pos_fim - pos_ini + 1];
+  for (int i = 0; i < pos_fim - pos_ini; i++) {
+    strC[i] = pos_ini[i];
+  }
+  strC[pos_fim - pos_ini] = '\0';
+  return s_cria(strC);
 }
 
 Str s_copia(Str s)

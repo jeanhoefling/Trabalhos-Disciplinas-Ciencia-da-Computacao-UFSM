@@ -76,7 +76,7 @@ Str s_cria(char *strC)
 void s_destroi(Str s)
 {
   s_ok(s);
-  //...
+  free(s->s);
   free(s);
 }
 
@@ -85,15 +85,21 @@ void s_destroi(Str s)
 int s_tam(Str s)
 {
   s_ok(s);
-  //...
-  return 0;
+  return u8_conta_unichar_nos_bytes(s->b_uso, s->s);
 }
 
 char *s_strc(Str s)
 {
   s_ok(s);
-  //...
-  return NULL;
+  char *strc = (char *)malloc(sizeof(char) * (s->b_uso + 1));
+  assert(strc != NULL);
+
+  for (int i = 0; i < s->b_uso; i++) {
+    strc[i] = s->s[i]; 
+  }
+  strc[s->b_uso] = '\0';
+
+  return strc;
 }
 
 unichar s_ch(Str s, int pos)

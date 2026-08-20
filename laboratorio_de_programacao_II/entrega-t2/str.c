@@ -147,8 +147,8 @@ Str s_substring(Str s, int pos, int tam)
 Str s_copia(Str s)
 {
   s_ok(s);
-  //...
-  return NULL;
+  Str copia = s_substring(s, 0, -1);
+  return copia;
 }
 
 
@@ -158,8 +158,15 @@ bool s_igual(Str s, Str sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
-  return false;
+  if (s->b_uso != sb->b_uso) {
+    return false;
+  }
+  for (int i = 0; i < s->b_uso; i++) {
+    if (s->s[i] != sb->s[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 int s_busca_c(Str s, int pos, Str sb)

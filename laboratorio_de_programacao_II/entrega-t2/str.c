@@ -246,7 +246,20 @@ int s_busca_s(Str_c s, int pos, Str_c buscada)
 {
   s_ok(s);
   s_ok(buscada);
-  //...
+
+  if (pos < 0) pos = s_tam(s) + pos + 1;
+
+  if (s_tam(buscada) == 0) return pos;
+
+  for (int i = pos; i <= s_tam(s) - s_tam(buscada); i++) {
+    Str sub_s = s_cria_substring(s, i, s_tam(buscada));
+    if (s_igual(sub_s, buscada)) {
+      s_destroi(sub_s);
+      return i;
+    }
+    s_destroi(sub_s);
+  }
+
   return -1;
 }
 

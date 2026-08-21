@@ -173,13 +173,10 @@ int s_busca_c(Str_c s, int pos, Str_c sb)
   if (pos < 0) pos = s_tam(s) + pos + 1;
 
   for (int i = pos; i < s_tam(s); i++) {
-
     for (int j = 0; j < s_tam(sb); j++) {
-
       if (s_ch(s, i) == s_ch(sb, j)) {
         return i;
       }
-
     }
   }
 
@@ -190,7 +187,19 @@ int s_busca_nc(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
+  bool tem;
+  if (pos < 0) pos = s_tam(s) + pos + 1;
+
+  for (int i = pos; i < s_tam(s); i++) {
+    tem = false;
+    for (int j = 0; j < s_tam(sb); j++) {
+      if (s_ch(s, i) == s_ch(sb, j)) {
+        tem = true;
+        break;
+      }
+    }
+    if (!tem) return i;
+  }
   return -1;
 }
 
@@ -198,7 +207,16 @@ int s_busca_rc(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
+
+  if (pos < 0) pos = s_tam(s) + pos + 1;
+
+  for (int i = pos - 1; i >= 0; i--) {
+    for (int j = 0; j < s_tam(sb); j++) {
+      if (s_ch(s, i) == s_ch(sb, j)) {
+        return i;
+      }
+    }
+  }
   return -1;
 }
 
@@ -206,7 +224,21 @@ int s_busca_rnc(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
+  bool tem;
+
+  if (pos < 0) pos = s_tam(s) + pos + 1;
+
+  for (int i = pos - 1; i >= 0; i--) {
+    tem = false;
+    for (int j = 0; j < s_tam(sb); j++) {
+      if (s_ch(s, i) == s_ch(sb, j)) {
+        tem = true;
+        break;
+      }
+    }
+    if (!tem) return i;
+  }
+
   return -1;
 }
 

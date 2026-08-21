@@ -268,9 +268,46 @@ int s_busca_s(Str_c s, int pos, Str_c buscada)
 
 void s_substitui(Str s, int pos, int tam, Str_c sb)
 {
+  if (sb == NULL) {
+    sb = s_cria("");
+  }
+
   s_ok(s);
   s_ok(sb);
-  //...
+
+  if (pos < -s_tam(s)) pos = 0;
+  else if (pos < 0) pos = s_tam(s) + pos + 1;
+  if (tam < 0) tam = s_tam(s);
+  if (pos + tam - 1 > s_tam(s) - 1) tam = s_tam(s) - pos;
+
+  // pos_1 s[0] ate s[pos]
+  // pos_2 sb[0] até sb[tam(sb) - 1]
+  // pos_3 s[pos + tam] até s[tam(s) - 1]
+  byte *pos_fim_1 = u8_avanca_unichar(s->s, pos);
+  byte *pos_ini_3 = u8_avanca_unichar(s->s, pos + tam);
+  int bytes_total = (pos_fim_1 - s->s) + sb->b_uso + ((s->s + s->b_uso) - pos_ini_3);
+
+  int indice_1 = pos_fim_1 - s->s; // Inicio da substituição
+  int indice_2 = pos_ini_3 - s->s; // Fim da substituição + 1
+
+  Str s_copia = s_cria_cópia(s);
+
+  while (bytes_total > s->b_aloc) {
+    s->b_aloc *= 2;
+  }
+  s->s = realloc(s->s, sizeof(byte) * s->b_aloc);
+  
+
+  int i;
+  for (i = 0; i < sb->b_uso; i++) {
+    s->s[i + indice_1] = sb->s[i];
+  }
+  for (int j = 0; j < s->b_uso - indice_2; j++, i++) {
+    s->s[i + indice_1] = s_copia->s[j + indice_2];
+  }
+
+  s->b_uso = bytes_total;
+  s_destroi(s_copia);
 }
 
 void s_substring(Str s, Str_c sb, int pos, int tam)
@@ -302,11 +339,15 @@ void s_substring(Str s, Str_c sb, int pos, int tam)
 
 void s_copia(Str s, Str_c sb)
 {
+  s_ok(s);
+  s_ok(sb);
   s_substring(s, sb, 0, -1);
 }
 
 void s_insere(Str s, int pos, Str_c sb)
 {
+  s_ok(s);
+  s_ok(sb);
   s_substitui(s, pos, 0, sb);
 }
 

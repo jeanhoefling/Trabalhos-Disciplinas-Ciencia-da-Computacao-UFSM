@@ -28,7 +28,7 @@ struct str {
 
 // verifica se a string cad está de acordo com a especificação
 // aborta o programa se não tiver
-static void s_ok(Str s)
+static void s_ok(Str_c s)
 {
   if (s->s == NULL) {
     assert(s->b_uso == 0);
@@ -45,9 +45,9 @@ static void s_ok(Str s)
 
 // operações de criação e destruição {{{1
 
-Str s_cria(char *strC)
+Str s_cria(char const *strC)
 {
-  Str str = malloc(sizeof(struct str));
+  Str str = malloc(sizeof(*str));
   assert(str != NULL);
 
   str->s = NULL;
@@ -85,15 +85,36 @@ void s_destroi(Str s)
   free(s);
 }
 
+Str s_cria_substring(Str_c s, int pos, int tam)
+{
+   Str nova = s_cria("");
+   s_substring(nova, s, pos, tam);
+   return nova;
+}
+
+Str s_cria_cópia(Str_c s)
+{
+   return s_cria_substring(s, 0, -1);
+}
+
+// Retorna uma nova string com o conteúdo do arquivo chamado nome.
+// Retorna uma string vazia em caso de erro.
+Str s_cria_de_arquivo(char *nome)
+{
+  Str s = s_cria("");
+  //...
+  return s;
+}
+
 // operações de acesso {{{1
 
-int s_tam(Str s)
+int s_tam(Str_c s)
 {
   s_ok(s);
   return u8_conta_unichar_nos_bytes(s->b_uso, s->s);
 }
 
-char *s_strc(Str s)
+char *s_strc(Str_c s)
 {
   s_ok(s);
   char *strc = (char *)malloc(sizeof(char) * (s->b_uso + 1));
@@ -107,7 +128,7 @@ char *s_strc(Str s)
   return strc;
 }
 
-unichar s_ch(Str s, int pos)
+unichar s_ch(Str_c s, int pos)
 {
   s_ok(s);
   int tam = s_tam(s);
@@ -126,35 +147,10 @@ unichar s_ch(Str s, int pos)
   return puni;
 }
 
-Str s_substring(Str s, int pos, int tam)
-{
-  s_ok(s);
-  if (pos < -s_tam(s)) pos = 0;
-  else if (pos < 0) pos = s_tam(s) + pos + 1;
-  if (tam < 0) tam = s_tam(s);
-  if (pos + tam - 1 > s_tam(s) - 1) tam = s_tam(s) - pos;
-
-  byte *pos_ini = u8_avanca_unichar(s->s, pos);
-  byte *pos_fim = u8_avanca_unichar(s->s, pos + tam);
-  char strC[pos_fim - pos_ini + 1];
-  for (int i = 0; i < pos_fim - pos_ini; i++) {
-    strC[i] = pos_ini[i];
-  }
-  strC[pos_fim - pos_ini] = '\0';
-  return s_cria(strC);
-}
-
-Str s_copia(Str s)
-{
-  s_ok(s);
-  Str copia = s_substring(s, 0, -1);
-  return copia;
-}
-
 
 // operações de busca e comparação {{{1
 
-bool s_igual(Str s, Str sb)
+bool s_igual(Str_c s, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
@@ -169,33 +165,28 @@ bool s_igual(Str s, Str sb)
   return true;
 }
 
-int s_busca_c(Str s, int pos, Str sb)
+int s_busca_c(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
 
   if (pos < 0) pos = s_tam(s) + pos + 1;
 
-  Str unichar_s, unichar_sb;
   for (int i = pos; i < s_tam(s); i++) {
-    unichar_s = s_substring(s, i, 1);
 
-    for (int j = 0; j < s_tam(s); j++) {
-      unichar_sb = s_substring(sb, j, 1);
-      if (s_igual(unichar_s, unichar_sb)) {
-        s_destroi(unichar_s);
-        s_destroi(unichar_sb);
+    for (int j = 0; j < s_tam(sb); j++) {
+
+      if (s_ch(s, i) == s_ch(sb, j)) {
         return i;
       }
-      s_destroi(unichar_sb);
+
     }
-    s_destroi(unichar_s);
   }
 
   return -1;
 }
 
-int s_busca_nc(Str s, int pos, Str sb)
+int s_busca_nc(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
@@ -203,7 +194,7 @@ int s_busca_nc(Str s, int pos, Str sb)
   return -1;
 }
 
-int s_busca_rc(Str s, int pos, Str sb)
+int s_busca_rc(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
@@ -211,7 +202,7 @@ int s_busca_rc(Str s, int pos, Str sb)
   return -1;
 }
 
-int s_busca_rnc(Str s, int pos, Str sb)
+int s_busca_rnc(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
@@ -219,7 +210,7 @@ int s_busca_rnc(Str s, int pos, Str sb)
   return -1;
 }
 
-int s_busca_s(Str s, int pos, Str buscada)
+int s_busca_s(Str_c s, int pos, Str_c buscada)
 {
   s_ok(s);
   s_ok(buscada);
@@ -230,40 +221,81 @@ int s_busca_s(Str s, int pos, Str buscada)
 
 // operações de alteração {{{1
 
-void s_substitui(Str s, int pos, int tam, Str sb)
+void s_substitui(Str s, int pos, int tam, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
   //...
 }
 
-void s_anexa(Str s, Str sb)
+void s_substring(Str s, Str_c sb, int pos, int tam)
+{
+  s_ok(s);
+  s_ok(sb);
+  if (pos < -s_tam(sb)) pos = 0;
+  else if (pos < 0) pos = s_tam(sb) + pos + 1;
+  if (tam < 0) tam = s_tam(sb);
+  if (pos + tam - 1 > s_tam(sb) - 1) tam = s_tam(sb) - pos;
+
+  byte *pos_ini = u8_avanca_unichar(sb->s, pos);
+  byte *pos_fim = u8_avanca_unichar(sb->s, pos + tam);
+  int bytes = pos_fim - pos_ini;
+
+  if (bytes > s->b_aloc && bytes != 0) {
+    s->b_aloc = MIN_ALLOC;
+    while (s->b_aloc < bytes) s->b_aloc *= 2;
+
+    s->s = realloc(s->s, sizeof(byte) * s->b_aloc);
+    assert(s->s != NULL);
+  }
+
+  for (int i = 0; i < pos_fim - pos_ini; i++) {
+    s->s[i] = pos_ini[i];
+  }
+  s->b_uso = bytes;
+}
+
+void s_copia(Str s, Str_c sb)
+{
+  s_substring(s, sb, 0, -1);
+}
+
+void s_insere(Str s, int pos, Str_c sb)
+{
+  s_substitui(s, pos, 0, sb);
+}
+
+void s_insere_c(Str s, int pos, unichar c)
+{
+  s_ok(s);
+  //...
+}
+
+void s_anexa(Str s, Str_c sb)
 {
   s_substitui(s, -1, 0, sb);
 }
 
-void s_insere(Str s, int pos, Str sb)
+void s_anexa_c(Str s, unichar c)
 {
-  //...
+  s_insere_c(s, -1, c);
 }
 
 void s_remove(Str s, int pos, int tam)
 {
-  //...
+  s_substitui(s, pos, tam, NULL);
 }
 
-Str s_apara(Str s, Str sobras)
+void s_apara(Str s, Str_c sobras)
 {
   s_ok(s);
   s_ok(sobras);
   //...
-  return NULL;
 }
 
 // operações de E/S {{{1
 
-// imprime a string em s na saída padrão
-void s_imprime(Str s)
+void s_imprime(Str_c s)
 {
   s_ok(s);
   for (int i = 0; i < s->b_uso; i++) {
@@ -271,23 +303,11 @@ void s_imprime(Str s)
   }
 }
 
-// Retorna uma nova string com o conteúdo do arquivo chamado nome.
-// Retorna uma string vazia em caso de erro.
-Str s_le_arquivo(Str nome)
-{
-  s_ok(nome);
-  //...
-  return NULL;
-}
-
-// grava o conteúdo de s em um arquivo chamado nome
-void s_grava_arquivo(Str s, Str nome)
+void s_grava_arquivo(Str_c s, char *nome)
 {
   s_ok(s);
-  s_ok(nome);
   //...
 }
 
 
 // vim: foldmethod=marker shiftwidth=2
-

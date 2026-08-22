@@ -101,8 +101,28 @@ Str s_cria_cópia(Str_c s)
 // Retorna uma string vazia em caso de erro.
 Str s_cria_de_arquivo(char *nome)
 {
-  Str s = s_cria("");
-  //...
+  Str s_vazia = s_cria("");
+
+  FILE *arq = fopen(nome, "r");
+  if (arq == NULL) return s_vazia;
+  fseek(arq, 0, SEEK_END);
+  long tamanho = ftell(arq);
+  rewind(arq);
+
+  byte *v = malloc(sizeof(byte) * (tamanho + 1));
+  if (v == NULL) return s_vazia;
+  int c = 'z';
+  int i = 0;
+  while (c != EOF) {
+    c = fgetc(arq);
+    v[i] = c;
+    i++;
+  }
+  v[tamanho] = '\0';
+
+  Str s = s_cria(v);
+  s_destroi(s_vazia);
+  fclose(arq);
   return s;
 }
 
@@ -354,21 +374,32 @@ void s_insere(Str s, int pos, Str_c sb)
 void s_insere_c(Str s, int pos, unichar c)
 {
   s_ok(s);
-  //...
+  byte *v = malloc(sizeof(byte) * 5);
+  int nbytes = u8_converte_pra_utf8(c, v);
+  assert(nbytes != -1);
+  v[nbytes] = '\0';
+  Str sb = s_cria(v);
+  free(v);
+  s_substitui(s, pos, 0, sb);
+  s_destroi(sb);
 }
 
 void s_anexa(Str s, Str_c sb)
 {
+  s_ok(s);
+  s_ok(sb);
   s_substitui(s, -1, 0, sb);
 }
 
 void s_anexa_c(Str s, unichar c)
 {
+  s_ok(s);
   s_insere_c(s, -1, c);
 }
 
 void s_remove(Str s, int pos, int tam)
 {
+  s_ok(s);
   s_substitui(s, pos, tam, NULL);
 }
 

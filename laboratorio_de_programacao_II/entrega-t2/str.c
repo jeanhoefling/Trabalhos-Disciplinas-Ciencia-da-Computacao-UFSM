@@ -41,8 +41,6 @@ static void s_ok(Str_c s)
   }
 }
 
-//...
-
 // operações de criação e destruição {{{1
 
 Str s_cria(char const *strC)

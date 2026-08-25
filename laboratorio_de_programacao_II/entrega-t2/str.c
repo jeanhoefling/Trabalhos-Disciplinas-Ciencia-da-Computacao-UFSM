@@ -87,14 +87,14 @@ void s_destroi(Str s)
 
 Str s_cria_substring(Str_c s, int pos, int tam)
 {
-   Str nova = s_cria("");
-   s_substring(nova, s, pos, tam);
-   return nova;
+  Str nova = s_cria("");
+  s_substring(nova, s, pos, tam);
+  return nova;
 }
 
 Str s_cria_cópia(Str_c s)
 {
-   return s_cria_substring(s, 0, -1);
+  return s_cria_substring(s, 0, -1);
 }
 
 // Retorna uma nova string com o conteúdo do arquivo chamado nome.
@@ -125,6 +125,7 @@ Str s_cria_de_arquivo(char *nome)
 
   Str s = s_cria(v);
   s_destroi(s_vazia);
+  free(v);
   fclose(arq);
   return s;
 }
@@ -291,8 +292,10 @@ int s_busca_s(Str_c s, int pos, Str_c buscada)
 
 void s_substitui(Str s, int pos, int tam, Str_c sb)
 {
+  Str sb_vazio = NULL;
   if (sb == NULL) {
-    sb = s_cria("");
+    sb_vazio = s_cria("");
+    sb = sb_vazio;
   }
 
   s_ok(s);
@@ -318,7 +321,9 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
   while (bytes_total > s->b_aloc) {
     s->b_aloc *= 2;
   }
-  s->s = realloc(s->s, sizeof(byte) * s->b_aloc);
+  byte *nova_s = realloc(s->s, sizeof(byte) * s->b_aloc);
+  assert(nova_s != NULL);
+  s->s = nova_s;
   
 
   int i;
@@ -331,6 +336,7 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
 
   s->b_uso = bytes_total;
   s_destroi(s_copia);
+  if (sb_vazio != NULL) s_destroi(sb_vazio);
 }
 
 void s_substring(Str s, Str_c sb, int pos, int tam)
@@ -350,8 +356,9 @@ void s_substring(Str s, Str_c sb, int pos, int tam)
     s->b_aloc = MIN_ALLOC;
     while (s->b_aloc < bytes) s->b_aloc *= 2;
 
-    s->s = realloc(s->s, sizeof(byte) * s->b_aloc);
-    assert(s->s != NULL);
+    byte *nova_s = realloc(s->s, sizeof(byte) * s->b_aloc);
+    assert(nova_s != NULL);
+    s->s = nova_s;
   }
 
   for (int i = 0; i < pos_fim - pos_ini; i++) {
@@ -378,6 +385,7 @@ void s_insere_c(Str s, int pos, unichar c)
 {
   s_ok(s);
   byte *v = malloc(sizeof(byte) * 5);
+  assert(v != NULL);
   int nbytes = u8_converte_pra_utf8(c, v);
   assert(nbytes != -1);
   v[nbytes] = '\0';
@@ -415,7 +423,7 @@ void s_apara(Str s, Str_c sobras)
     s_remove(s, 0, -1);
     return;
   }
-  
+
   s_remove(s, 0, pos1);
   int pos2 = s_busca_rnc(s, -1, sobras);
   s_remove(s, pos2 + 1, -1);
@@ -434,7 +442,10 @@ void s_imprime(Str_c s)
 void s_grava_arquivo(Str_c s, char *nome)
 {
   s_ok(s);
-  //...
+  FILE *arq = fopen(nome, "w");
+  assert(arq != NULL);
+  fwrite(s->s, sizeof(byte), s->b_uso, arq);
+  fclose(arq);
 }
 
 

@@ -110,12 +110,15 @@ Str s_cria_de_arquivo(char *nome)
   rewind(arq);
 
   byte *v = malloc(sizeof(byte) * (tamanho + 1));
-  if (v == NULL) return s_vazia;
-  int c = 'z';
+  if (v == NULL) {
+    fclose(arq);
+    return s_vazia;
+  }
+  int c = fgetc(arq);
   int i = 0;
   while (c != EOF) {
-    c = fgetc(arq);
     v[i] = c;
+    c = fgetc(arq);
     i++;
   }
   v[tamanho] = '\0';
@@ -407,7 +410,15 @@ void s_apara(Str s, Str_c sobras)
 {
   s_ok(s);
   s_ok(sobras);
-  //...
+  int pos1 = s_busca_nc(s, 0, sobras);
+  if (pos1 == -1) {
+    s_remove(s, 0, -1);
+    return;
+  }
+  
+  s_remove(s, 0, pos1);
+  int pos2 = s_busca_rnc(s, -1, sobras);
+  s_remove(s, pos2 + 1, -1);
 }
 
 // operações de E/S {{{1

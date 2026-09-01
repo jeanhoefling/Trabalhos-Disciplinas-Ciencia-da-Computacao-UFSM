@@ -154,14 +154,14 @@ unichar s_ch(Str_c s, int pos)
 {
   s_ok(s);
   int tam = s_tam(s);
-  if (pos > tam - 1 || pos < -tam) return UNI_INV;
+  if (pos > tam - 1 || pos < -(tam + 1) || pos == -1) return UNI_INV;
 
   byte *pos_unichar;
   if (pos >= 0) {
     pos_unichar = u8_avanca_unichar(s->s, pos);
   }
   else {
-    pos_unichar = u8_avanca_unichar(s->s, tam + pos);
+    pos_unichar = u8_avanca_unichar(s->s, tam + pos + 1);
   }
   unichar puni;
   int tam_unichar = u8_nbytes_no_unichar_que_comeca_com(*pos_unichar);
@@ -301,8 +301,9 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
 
   if (pos < -s_tam(s)) pos = 0;
   else if (pos < 0) pos = s_tam(s) + pos + 1;
+  if (pos > s_tam(s)) pos = s_tam(s);
   if (tam < 0) tam = s_tam(s);
-  if (pos + tam - 1 > s_tam(s) - 1) tam = s_tam(s) - pos;
+  if (pos + tam > s_tam(s)) tam = s_tam(s) - pos;
 
   // pos_1 s[0] ate s[pos]
   // pos_2 sb[0] até sb[tam(sb) - 1]
@@ -316,13 +317,13 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
 
   Str s_copia = s_cria_cópia(s);
 
-  while (bytes_total > s->b_aloc) {
-    s->b_aloc *= 2;
+  if (bytes_total > s->b_aloc) {
+      if (s->b_aloc == 0) s->b_aloc = MIN_ALLOC;
+      while (bytes_total > s->b_aloc) s->b_aloc *= 2;
+      byte *nova_s = realloc(s->s, sizeof(byte) * s->b_aloc);
+      assert(nova_s != NULL);
+      s->s = nova_s;
   }
-  byte *nova_s = realloc(s->s, sizeof(byte) * s->b_aloc);
-  assert(nova_s != NULL);
-  s->s = nova_s;
-  
 
   int i;
   for (i = 0; i < sb->b_uso; i++) {
@@ -333,6 +334,17 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
   }
 
   s->b_uso = bytes_total;
+  if (s->b_uso == 0) {
+      free(s->s);
+      s->s = NULL;
+      s->b_aloc = 0;
+  }
+  else {
+      while (s->b_uso < s->b_aloc / 2 && s->b_aloc / 2 >= MIN_ALLOC) s->b_aloc = s->b_aloc / 2;
+      byte *nova_s = realloc(s->s, sizeof(byte) * s->b_aloc);
+      assert(nova_s != NULL);
+      s->s = nova_s;
+  }
   s_destroi(s_copia);
   if (sb_vazio != NULL) s_destroi(sb_vazio);
 }
@@ -343,17 +355,17 @@ void s_substring(Str s, Str_c sb, int pos, int tam)
   s_ok(sb);
   if (pos < -s_tam(sb)) pos = 0;
   else if (pos < 0) pos = s_tam(sb) + pos + 1;
+  if (pos > s_tam(sb)) pos = s_tam(sb);
   if (tam < 0) tam = s_tam(sb);
-  if (pos + tam - 1 > s_tam(sb) - 1) tam = s_tam(sb) - pos;
+  if (pos + tam > s_tam(sb)) tam = s_tam(sb) - pos;
 
   byte *pos_ini = u8_avanca_unichar(sb->s, pos);
   byte *pos_fim = u8_avanca_unichar(sb->s, pos + tam);
   int bytes = pos_fim - pos_ini;
 
-  if (bytes > s->b_aloc && bytes != 0) {
-    s->b_aloc = MIN_ALLOC;
-    while (s->b_aloc < bytes) s->b_aloc *= 2;
-
+  if (bytes > s->b_aloc) {
+    if (s->b_aloc == 0) s->b_aloc = MIN_ALLOC;
+    while (bytes > s->b_aloc) s->b_aloc *= 2;
     byte *nova_s = realloc(s->s, sizeof(byte) * s->b_aloc);
     assert(nova_s != NULL);
     s->s = nova_s;
@@ -363,6 +375,17 @@ void s_substring(Str s, Str_c sb, int pos, int tam)
     s->s[i] = pos_ini[i];
   }
   s->b_uso = bytes;
+  if (s->b_uso == 0) {
+    free(s->s);
+    s->s = NULL;
+    s->b_aloc = 0;
+  } 
+  else {
+    while (s->b_uso < s->b_aloc / 2 && s->b_aloc / 2 >= MIN_ALLOC) s->b_aloc /= 2;
+    byte *nova_s = realloc(s->s, sizeof(byte) * s->b_aloc);
+    assert(nova_s != NULL);
+    s->s = nova_s;
+  }
 }
 
 void s_copia(Str s, Str_c sb)

@@ -162,14 +162,58 @@ dado_t l_dado_pos(Lista l, int pos) {
   return temp->dado;
 }
 
-// remove e retorna o dado no início da lista
-dado_t l_remove_inicio(Lista l);
 
-// remove e retorna o dado no final da lista
-dado_t l_remove_fim(Lista l);
+dado_t l_remove_inicio(Lista l) {
+  assert(!(l->tam == 0));
+  No *temp = l->sentinela->prox;
+  dado_t d = temp->dado;
 
-// remove e retorna o dado na posição pos da lista
-dado_t l_remove_pos(Lista l, int pos);
+
+  l->sentinela->prox = temp->prox;
+  (temp->prox)->ant = l->sentinela;
+
+  free(temp);
+  l->tam--;
+  return d;
+}
+
+
+dado_t l_remove_fim(Lista l) {
+  assert(!(l->tam == 0));
+  No *temp = l->sentinela->ant;
+  dado_t d = temp->dado;
+
+
+  l->sentinela->ant = temp->ant;
+  (temp->ant)->prox = l->sentinela;
+
+  free(temp);
+  l->tam--;
+  return d;
+}
+
+
+dado_t l_remove_pos(Lista l, int pos) {
+  assert(!(l->tam == 0));
+  if (pos <= 0) {
+    return l_remove_inicio(l);
+  } else if (pos >= l->tam) {
+    return l_remove_fim(l);
+  }
+
+  No *temp = l->sentinela->prox;
+  for (int i = 0; i < pos; i++) {
+    temp = temp->prox;
+  }
+  dado_t d = temp->dado;
+
+  (temp->prox)->ant = temp->ant;
+  (temp->ant)->prox = temp->prox;
+
+  free(temp);
+  l->tam--;
+  return d;
+}
 
 
 // funções para usar a lista como uma fila

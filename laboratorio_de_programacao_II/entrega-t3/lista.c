@@ -35,7 +35,22 @@ Lista l_cria() {
 // exemplos:
 //   "a,ba,ca, te", ", " -> ["a" "ba" "ca" "te"]
 //   "aba \ncate\n", "\n" -> ["aba " "cate"]
-Lista l_cria_separando(Str s, Str sep);
+Lista l_cria_separando(Str s, Str sep) {
+  Lista l = l_cria();
+  int pos = s_busca_nc(s, 0, sep);
+  dado_t subs;
+  while (pos != -1 && s_busca_c(s, pos, sep) != -1) {
+    int possep = s_busca_c(s, pos, sep);
+    subs = s_cria_substring(s, pos, possep - pos);
+    l_insere_fim(l, subs);
+    pos = s_busca_nc(s, possep, sep);
+  }
+  // if trata o caso de ter um sep no ultimo caracter de s;
+  if (pos < s_tam(s) && pos != -1) {
+    l_insere_fim(l, s_cria_substring(s, pos, s_tam(s) - pos));
+  }
+  return l;
+}
 
 // libera a memória ocupada por uma lista
 void l_destroi(Lista l) {

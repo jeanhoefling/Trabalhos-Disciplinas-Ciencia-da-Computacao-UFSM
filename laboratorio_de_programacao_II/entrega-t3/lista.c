@@ -218,27 +218,35 @@ dado_t l_remove_pos(Lista l, int pos) {
 
 // funções para usar a lista como uma fila
 
-// l_cria, l_destroi, l_vazia
+dado_t l_primeiro(Lista l) {
+    return l_dado_inicio(l);
+}
 
-// retorna o dado que está no início da fila
-dado_t l_primeiro(Lista l);
 
-// insere um dado no fim da fila
-void l_insere(Lista l, dado_t d);
+void l_insere(Lista l, dado_t d) {
+    l_insere_fim(l, d);
+    return;
+}
 
-// remove e retorna o dado que está no início da fila
-dado_t l_remove(Lista l);
+
+dado_t l_remove(Lista l) {
+    return l_remove_inicio(l);
+}
 
 
 // funções para usar a lista como uma pilha
 
-// l_cria, l_destroi, l_vazia
+dado_t l_topo(Lista l) {
+    return l_dado_fim(l);
+}
 
-// retorna o dado que está no topo da pilha
-dado_t l_topo(Lista l);
 
-// empilha um dado no topo da pilha
-void l_empilha(Lista l, dado_t d);
+void l_empilha(Lista l, dado_t d) {
+    l_insere_fim(l, d);
+    return;
+}
 
-// remove e retorna o dado que está no topo da pilha
-dado_t l_desempilha(Lista l);
+
+dado_t l_desempilha(Lista l) {
+    return l_remove_fim(l);
+}

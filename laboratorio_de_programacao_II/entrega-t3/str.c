@@ -475,7 +475,7 @@ Str s_cria_número(double num) {
   // Sinal
   if (num < 0) {
     s_insere_c(s, 0, "-");
-    num = -num
+    num = -num;
   }
 
   // Conta as casas decimais e multiplica por 10 até virar um int
@@ -488,7 +488,7 @@ Str s_cria_número(double num) {
   // Faz a inserção em s
   int cont = 0;
   char c;
-  int intnum = (int)num
+  int intnum = (int)num;
   while (intnum >= 10) {
     c = '0' + (intnum % 10);
     s_insere_c(s, 0, c);
@@ -537,14 +537,14 @@ double s_número(Str_c s) {
 }
 
 Str s_cria_unindo(Lista l, Str sep) {
-  No *p = l->sentinela->prox;
+  int tam  = l_tam(l);
   Str s = s_cria("");
-  while (p != l->sentinela->ant) {
-    s_anexa(s, p->dado);
+  for (int i = 0; i < tam - 1; i++) {
+    s_anexa(s, l_dado_pos(l, i));
     s_anexa(s, sep);
-    p = p->prox;
   }
-  s_anexa(s, p->dado);
+  s_anexa(s, l_dado_fim(l));
+  return s;
 }
 
 

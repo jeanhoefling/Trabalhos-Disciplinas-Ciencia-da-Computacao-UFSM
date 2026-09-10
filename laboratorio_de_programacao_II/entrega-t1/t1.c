@@ -70,6 +70,7 @@ double crono_parcial(crono *c)
 
 // Desenha a tela do jogo (inimigos, pontos, escudos, etc...)
 void desenha_terminal(estado_jogo e) {
+  system("clear");
   printf("%d ", e.pontos);
   if (!e.noite) {
     printf("%d %c", e.tiros, e.arma);

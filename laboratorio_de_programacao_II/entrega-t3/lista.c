@@ -54,8 +54,10 @@ int l_tam(Lista l) {
   return l->tam;
 }
 
-// retorna true se a lista tiver cheia
-bool l_cheia(Lista l);
+
+bool l_cheia(Lista l) {
+  return false;
+}
 
 
 bool l_vazia(Lista l) {

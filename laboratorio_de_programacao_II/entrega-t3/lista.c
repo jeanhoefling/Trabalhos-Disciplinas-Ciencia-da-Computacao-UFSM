@@ -29,12 +29,7 @@ Lista l_cria() {
   return l;
 }
 
-// cria uma lista contendo substrings de s
-// as substrings são separadas por quaisquer caractere de sep
-// os caracteres de sep não aparecem nas substrings
-// exemplos:
-//   "a,ba,ca, te", ", " -> ["a" "ba" "ca" "te"]
-//   "aba \ncate\n", "\n" -> ["aba " "cate"]
+
 Lista l_cria_separando(Str s, Str sep) {
   Lista l = l_cria();
   int pos = s_busca_nc(s, 0, sep);

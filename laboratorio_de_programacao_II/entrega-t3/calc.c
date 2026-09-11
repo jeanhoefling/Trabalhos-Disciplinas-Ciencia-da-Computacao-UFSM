@@ -3,7 +3,17 @@
 // Calcula o valor de expressão e retorna uma nova Str contendo o resultado.
 // Em cado de erro, os primeiros caracteres da Str de retorno são "#ERRO ".
 Str calculadora(Str expressão) {
-
+  Lista tokens = tokeniza(expressão);
+  Lista operandos = l_cria();
+  Lista operadores = l_cria();
+  for (int i = 0; i < l_tam(tokens); i++) {
+    dado_t d = l_dado_pos(tokens, i);
+    unichar prim = s_ch(d, 0);
+    if (prim == '+' || prim == '-' || prim == '*' || prim == '/' 
+      || prim == '^' || prim == '(' || prim == ')' || prim == '=') {
+        l_empilha(operadores, d);
+      }
+  }
 }
 
 // Retorna uma nova Lista contendo substrings de txt.
@@ -20,39 +30,35 @@ Str calculadora(Str expressão) {
 Lista tokeniza(Str txt) {
   Lista l = l_cria();
   Str sep = s_cria("\t \n");
+  Str sep2 = s_cria("0123456789.");
+  Str sep3 = s_cria("0123456789$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
   int pos = s_busca_nc(txt, 0, sep);
   dado_t subs;
   while (pos != -1) {
     unichar prim = s_ch(txt, pos);
     if ((prim >= '0' && prim <= '9') || prim == '.') {
-      Str sep2 = s_cria("0123456789.");
       int possep = s_busca_nc(txt, pos, sep2);
       // Caso em que não será necessario efetuar mais nenhuma divisão na string
       if (possep == -1) {
           subs = s_cria_substring(txt, pos, s_tam(txt) - pos);
           l_insere_fim(l, subs);
-          s_destroi(sep2);
           break;
       }
       subs = s_cria_substring(txt, pos, possep - pos);
       l_insere_fim(l, subs);
       pos = s_busca_nc(txt, possep, sep);   
-      s_destroi(sep2);
     }
     else if ((prim >= 'A' && prim <= 'Z') || (prim >= 'a' && prim <= 'z') || prim == '$' || prim == '_') {
-      Str sep2 = s_cria("0123456789$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
-      int possep = s_busca_nc(txt, pos, sep2);
+      int possep = s_busca_nc(txt, pos, sep3);
       // Caso em que não será necessario efetuar mais nenhuma divisão na string
       if (possep == -1) {
           subs = s_cria_substring(txt, pos, s_tam(txt) - pos);
           l_insere_fim(l, subs);
-          s_destroi(sep2);
           break;
       }
       subs = s_cria_substring(txt, pos, possep - pos);
       l_insere_fim(l, subs);
       pos = s_busca_nc(txt, possep, sep);   
-      s_destroi(sep2);
     }
     else {
       subs = s_cria_substring(txt, pos, 1);
@@ -61,5 +67,7 @@ Lista tokeniza(Str txt) {
     }
   }
   s_destroi(sep);
+  s_destroi(sep2);
+  s_destroi(sep3);
   return l;
 }

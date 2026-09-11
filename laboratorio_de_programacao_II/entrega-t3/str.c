@@ -471,10 +471,10 @@ void s_grava_arquivo(Str_c s, char *nome)
 
 Str s_cria_número(double num) {
   Str s = s_cria("");
-
+  bool negativo = false;
   // Sinal
   if (num < 0) {
-    s_insere_c(s, 0, "-");
+    negativo = true;
     num = -num;
   }
 
@@ -489,7 +489,7 @@ Str s_cria_número(double num) {
   int cont = 0;
   char c;
   int intnum = (int)num;
-  while (intnum >= 10) {
+  while (intnum >= 10 || cont < decimal) {
     c = '0' + (intnum % 10);
     s_insere_c(s, 0, c);
     intnum /= 10;
@@ -500,6 +500,8 @@ Str s_cria_número(double num) {
   }
   c = '0' + intnum;
   s_insere_c(s, 0, c);
+  if (negativo) s_insere_c(s, 0, '-');
+  return s;
 }
 
 double s_número(Str_c s) {
@@ -539,6 +541,7 @@ double s_número(Str_c s) {
 Str s_cria_unindo(Lista l, Str sep) {
   int tam  = l_tam(l);
   Str s = s_cria("");
+  if (tam == 0) return s;
   for (int i = 0; i < tam - 1; i++) {
     s_anexa(s, l_dado_pos(l, i));
     s_anexa(s, sep);

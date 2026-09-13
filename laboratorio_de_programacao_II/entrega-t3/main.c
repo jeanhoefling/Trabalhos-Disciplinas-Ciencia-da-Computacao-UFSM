@@ -14,11 +14,13 @@ int main() {
   char lin[2000];
   while (fgets(lin, 2000, arq_in) != NULL) {
     Str s = s_cria(lin);
-    l_insere_inicio(l_in, s);
-    Str res = calculadora(s);
-    l_insere_inicio(l_out, res);
-    s_grava_arquivo(res, "resultados.txt");
+    l_insere_fim(l_in, s);
+    Str res_calc = calculadora(s);
+    l_insere_fim(l_out, res_calc);
   }
+  Str sep = s_cria("\n");
+  Str res = s_cria_unindo(l_out, sep);
+  s_grava_arquivo(res, "resultados.txt");
   l_destroi(l_in);
   l_destroi(l_out);
   fclose(arq_in);

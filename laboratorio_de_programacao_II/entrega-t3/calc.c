@@ -40,9 +40,23 @@ dado_t executa_op (unichar op, Lista operandos) {
       break;
     case '^':
       res = 1;
-      for (int i = 0; i < num1; i++) {
-        res *= num2;
+      if (num1 > 0) {
+        for (int i = 0; i < num1; i++) {
+          res *= num2;
+        }
+      } else {
+        for (int i = 0; i < -num1; i++) {
+          res /= num2;
+        }
       }
+      break;
+    case '=':
+      //parte das variaveis
+      break;
+    default:
+      s_destroi(n1);
+      s_destroi(n2);
+      return s_cria("#ERRO esse operador não devia ta aqui");
       break;
   }
   dado_t strres = s_cria_número(res);
@@ -60,6 +74,7 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
         return 0;
     }
     else {
+      s_destroi(d);
       return -1;
     }
   }
@@ -74,6 +89,7 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
         l_empilha(operandos, s);
       } else {
         s_destroi(s);
+        s_destroi(d);
         return -1;
       }
       ret = opera_ou_empilha(operadores, operandos, d);
@@ -92,6 +108,7 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
         l_empilha(operandos, s);
       } else {
         s_destroi(s);
+        s_destroi(d);
         return -1;
       }
       ret = opera_ou_empilha(operadores, operandos, d);
@@ -105,12 +122,21 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
   else if (op_antes == '(') {
     if (op_atual == ')') {
       s_destroi(l_desempilha(operadores));
+      s_destroi(d);
       return 0;
     }
     else {
       l_empilha(operadores, d);
       return 0;
     }
+  }
+  else if (op_antes == '=') {
+    //parte das variaveis
+    return 0;
+  }
+  else {
+    s_destroi(d);
+    return -1;
   }
 }
 
@@ -129,6 +155,7 @@ Str finaliza_calc (Lista operadores, Lista operandos) {
     if (!teve_erro(s)) {
       l_empilha(operandos, s);
     } else {
+      s_destroi(s);
       return s_cria("#ERRO");
     }
   }

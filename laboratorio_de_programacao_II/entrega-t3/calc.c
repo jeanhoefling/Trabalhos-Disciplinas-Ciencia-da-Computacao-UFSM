@@ -1,6 +1,20 @@
 #include "calc.h"
 
+bool teve_erro (dado_t s1) { //essa serve para verificar se executa_op retornou "#ERRO", não = 0; sim = 1
+  dado_t s2 = s_cria("#ERRO");
+  if (s_igual(s1, s2)) {
+    s_destroi(s2);
+    return 1;
+  }
+  s_destroi(s2);
+  return 0;
+}
+
 dado_t executa_op (unichar op, Lista operandos) {
+  if (l_tam(operandos) < 2) {
+    return s_cria("#ERRO");
+  }
+
   dado_t n1 = l_desempilha(operandos);
   dado_t n2 = l_desempilha(operandos);
   double num1 = s_número(n1);
@@ -17,6 +31,11 @@ dado_t executa_op (unichar op, Lista operandos) {
       res = num2 * num1;
       break;
     case '/':
+      if (num1 == 0) {
+        s_destroi(n1);
+        s_destroi(n2);
+        return s_cria("#ERRO");
+      }
       res = num2 / num1;
       break;
     case '^':
@@ -27,10 +46,13 @@ dado_t executa_op (unichar op, Lista operandos) {
       break;
   }
   dado_t strres = s_cria_número(res);
+  s_destroi(n1);
+  s_destroi(n2);
   return strres;
 }
 
 int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0 se ok, -1 se err
+  int ret;
   unichar op_atual = s_ch(d, 0);
   if (l_vazia(operadores)) {
     if (op_atual != ')') {
@@ -47,9 +69,14 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
   if (op_antes == '-' || op_antes == '+') {
     if (op_atual == '+' || op_atual == '-' || op_atual == ')') {
       l_desempilha(operadores);
-      l_empilha(operandos, executa_op(op_antes, operandos));
-      opera_ou_empilha(operadores, operandos, d);
-      return 0;
+      dado_t s = executa_op(op_antes, operandos);
+      if (!teve_erro(s)) {
+        l_empilha(operandos, s);
+      } else {
+        return -1;
+      }
+      ret = opera_ou_empilha(operadores, operandos, d);
+      return ret;
     }
     else {
       l_empilha(operadores, d);
@@ -59,9 +86,14 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
   else if (op_antes == '*' || op_antes == '/' || op_antes == '^') {
     if (op_atual == '+' || op_atual == '-' || op_atual == ')' || op_atual == '*' || op_atual == '/') {
       l_desempilha(operadores);
-      l_empilha(operandos, executa_op(op_antes, operandos));
-      opera_ou_empilha(operadores, operandos, d);
-      return 0;
+      dado_t s = executa_op(op_antes, operandos);
+      if (!teve_erro(s)) {
+        l_empilha(operandos, s);
+      } else {
+        return -1;
+      }
+      ret = opera_ou_empilha(operadores, operandos, d);
+      return ret;
     }
     else {
       l_empilha(operadores, d);
@@ -80,6 +112,29 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
   }
 }
 
+Str finaliza_calc (Lista operadores, Lista operandos) {
+  while (!(l_vazia(operadores))) {
+    dado_t d = l_desempilha(operadores);
+    unichar op = s_ch(d, 0);
+    // se algum parenteses nao foi fechado
+    if (op == '(') {
+      return s_cria("#ERRO");
+    }
+
+    // executa op
+    dado_t s = executa_op(op, operandos);
+    if (!teve_erro(s)) {
+      l_empilha(operandos, s);
+    } else {
+      return s_cria("#ERRO");
+    }
+  }
+  if (l_tam(operandos) != 1) {
+    return s_cria("#ERRO");
+  }
+  return l_desempilha(operandos);
+}
+
 // Calcula o valor de expressão e retorna uma nova Str contendo o resultado.
 // Em cado de erro, os primeiros caracteres da Str de retorno são "#ERRO ".
 Str calculadora(Str expressão) {
@@ -87,16 +142,18 @@ Str calculadora(Str expressão) {
   Lista operando_num = l_cria();
   Lista operador = l_cria();
   bool num_var = true; // true se for num, false se for variavel 
+  int err = 0;
   
   // essa parte poe os tokens nas pilhas certas, é interessante criar uma função separada pra isso
   // ver com professor
-  for (int i = 0; i < l_tam(tokens); i++) {
+  while (!l_vazia(tokens)) {
     num_var = true;
-    dado_t d = l_dado_pos(tokens, i);
+    dado_t d = l_remove_inicio(tokens);
     unichar c = s_ch(d, 0);
     if (c == '+' || c == '-' || c == '*' || c == '/' 
       || c == '^' || c == '(' || c == ')' || c == '=') {
-        opera_ou_empilha(operador, operando_num, d);
+        err = opera_ou_empilha(operador, operando_num, d);
+        if (err == -1) break;
       }
     // o  else verifica se é num ou variavel
     else {
@@ -106,17 +163,25 @@ Str calculadora(Str expressão) {
           num_var = false;
         }
       }
-    }
-    if (num_var) {
-      l_empilha(operando_num, d);
-    } else {
-      // deverá por no lugar das variaveis
+      if (num_var) {
+        l_empilha(operando_num, d);
+      } else {
+        // deverá por no lugar das variaveis
+      }
     }
   }
-  // a partir daqui tudo deve estar na pilha correta
 
+  l_destroi(tokens);
+  if (err == -1) {
+    l_destroi(operador);
+    l_destroi(operando_num);
+    return s_cria("#ERRO");
+  }
 
-
+  Str sres = finaliza_calc(operador, operando_num);
+  l_destroi(operador);
+  l_destroi(operando_num);
+  return sres;
 }
 
 // Retorna uma nova Lista contendo substrings de txt.

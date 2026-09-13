@@ -68,11 +68,12 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
   unichar op_antes = s_ch(dado_antes, 0);
   if (op_antes == '-' || op_antes == '+') {
     if (op_atual == '+' || op_atual == '-' || op_atual == ')') {
-      l_desempilha(operadores);
+      s_destroi(l_desempilha(operadores));
       dado_t s = executa_op(op_antes, operandos);
       if (!teve_erro(s)) {
         l_empilha(operandos, s);
       } else {
+        s_destroi(s);
         return -1;
       }
       ret = opera_ou_empilha(operadores, operandos, d);
@@ -85,11 +86,12 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
   }
   else if (op_antes == '*' || op_antes == '/' || op_antes == '^') {
     if (op_atual == '+' || op_atual == '-' || op_atual == ')' || op_atual == '*' || op_atual == '/') {
-      l_desempilha(operadores);
+      s_destroi(l_desempilha(operadores));
       dado_t s = executa_op(op_antes, operandos);
       if (!teve_erro(s)) {
         l_empilha(operandos, s);
       } else {
+        s_destroi(s);
         return -1;
       }
       ret = opera_ou_empilha(operadores, operandos, d);
@@ -102,7 +104,7 @@ int opera_ou_empilha(Lista operadores, Lista operandos, dado_t d) { // retorna 0
   }
   else if (op_antes == '(') {
     if (op_atual == ')') {
-      l_desempilha(operadores);
+      s_destroi(l_desempilha(operadores));
       return 0;
     }
     else {
@@ -116,6 +118,7 @@ Str finaliza_calc (Lista operadores, Lista operandos) {
   while (!(l_vazia(operadores))) {
     dado_t d = l_desempilha(operadores);
     unichar op = s_ch(d, 0);
+    s_destroi(d);
     // se algum parenteses nao foi fechado
     if (op == '(') {
       return s_cria("#ERRO");
@@ -170,7 +173,6 @@ Str calculadora(Str expressão) {
       }
     }
   }
-
   l_destroi(tokens);
   if (err == -1) {
     l_destroi(operador);

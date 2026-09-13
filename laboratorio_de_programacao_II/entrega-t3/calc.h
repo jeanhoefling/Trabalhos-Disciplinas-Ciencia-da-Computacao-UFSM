@@ -7,6 +7,7 @@
 
 #include "str.h"
 #include "lista.h"
+#include "dicionario.h"
 
 // Calcula o valor de expressão e retorna uma nova Str contendo o resultado.
 // Em cado de erro, os primeiros caracteres da Str de retorno são "#ERRO ".

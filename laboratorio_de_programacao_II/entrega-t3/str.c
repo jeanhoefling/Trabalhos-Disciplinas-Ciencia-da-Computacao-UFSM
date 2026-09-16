@@ -470,38 +470,9 @@ void s_grava_arquivo(Str_c s, char *nome)
 }
 
 Str s_cria_número(double num) {
-  Str s = s_cria("");
-  bool negativo = false;
-  // Sinal
-  if (num < 0) {
-    negativo = true;
-    num = -num;
-  }
-
-  // Conta as casas decimais e multiplica por 10 até virar um int
-  int decimal = 0;
-  while (num != (int)num) {
-    num *= 10;
-    decimal++;
-  }
-
-  // Faz a inserção em s
-  int cont = 0;
-  char c;
-  int intnum = (int)num;
-  while (intnum >= 10 || cont < decimal) {
-    c = '0' + (intnum % 10);
-    s_insere_c(s, 0, c);
-    intnum /= 10;
-    cont++;
-    if (cont == decimal && decimal != 0) {
-      s_insere_c(s, 0, '.');
-    }
-  }
-  c = '0' + intnum;
-  s_insere_c(s, 0, c);
-  if (negativo) s_insere_c(s, 0, '-');
-  return s;
+  char v[100];
+  sprintf(v, "%lf", num);
+  return s_cria(v);
 }
 
 double s_número(Str_c s) {

@@ -21,6 +21,9 @@ bool é_numero (dado_t d) {
       return false;
     } else if (c == '.') {
       cont_pontos++;
+      if (i == 0) {
+        return false;
+      }
     }
   }
   if (cont_pontos > 1) return false;

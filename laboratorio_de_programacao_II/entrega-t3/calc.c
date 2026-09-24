@@ -15,18 +15,25 @@ bool é_operador (unichar c) {
 
 bool é_numero (dado_t d) {
   int cont_pontos = 0;
+  int cont_menos = 0;
   for (int i = 0; i < s_tam(d); i++) {
     unichar c = s_ch(d, i);
-    if (!((c >= '0' && c <= '9') || c == '.')) {
+    if (!((c >= '0' && c <= '9') || c == '.' || c == '-')) {
       return false;
     } else if (c == '.') {
       cont_pontos++;
       if (i == 0) {
         return false;
       }
+    } else if (c == '-') {
+      cont_menos++;
+      if (i != 0) {
+        return false;
+      }
     }
   }
   if (cont_pontos > 1) return false;
+  if (cont_menos > 1) return false;
   return true;
 }
 
@@ -42,10 +49,14 @@ bool é_variavel(dado_t d) {
 
 bool teve_erro (dado_t s1) { //essa serve para verificar se executa_op retornou "#ERRO", não = 0; sim = 1
   dado_t s2 = s_cria("#ERRO");
-  if (s_igual(s1, s2)) {
+  dado_t s1_corte = s_cria("");
+  s_substring(s1_corte, s1, 0, 5);
+  if (s_igual(s1_corte, s2)) {
+    s_destroi(s1_corte);
     s_destroi(s2);
     return 1;
   }
+  s_destroi(s1_corte);
   s_destroi(s2);
   return 0;
 }
@@ -66,7 +77,7 @@ double valor_operando(dado_t operando, Dicionário dic, bool *erro)
 
 dado_t executa_op (unichar op, Lista operandos, Dicionário d) {
   if (l_tam(operandos) < 2) {
-    return s_cria("#ERRO");
+    return s_cria("#ERRO operandos insuficientes");
   }
   bool erro = 0;
   dado_t n1 = l_desempilha(operandos);
@@ -79,7 +90,7 @@ dado_t executa_op (unichar op, Lista operandos, Dicionário d) {
     if (erro) {
       s_destroi(n1); 
       s_destroi(n2);
-      return s_cria("#ERRO");
+      return s_cria("#ERRO busca de variável que não existe no dicionário");
     }
   }
 
@@ -98,38 +109,36 @@ dado_t executa_op (unichar op, Lista operandos, Dicionário d) {
       if (valor_operando(n1, d, &erro) == 0) {
         s_destroi(n1);
         s_destroi(n2);
-        return s_cria("#ERRO");
+        return s_cria("#ERRO divisão por zero");
       }
       res = valor_operando(n2, d, &erro) / valor_operando(n1, d, &erro);
       break;
     case '^':
-      res = 1;
-      if (valor_operando(n1, d, &erro) > 0) {
-        for (int i = 0; i < valor_operando(n1, d, &erro); i++) {
-          res *= valor_operando(n2, d, &erro);
-        }
-      } else {
-        for (int i = 0; i < -valor_operando(n1, d, &erro); i++) {
-          res /= valor_operando(n2, d, &erro);
-        }
-      }
+      res = pow(valor_operando(n2, d, &erro), valor_operando(n1, d, &erro));
       break;
     case '=':
       double valor = valor_operando(n1, d, &erro);
-      if (erro || !é_variavel(n2)) {
+      if (erro) {
         s_destroi(n1); 
         s_destroi(n2);
-        return s_cria("#ERRO");
+        return s_cria("#ERRO busca de variável que não existe no dicionário");
+      } else if (!é_variavel(n2)) {
+        s_destroi(n1); 
+        s_destroi(n2);
+        return s_cria("#ERRO igualdade sem variável");
       }
       dado_t valor_str = s_cria_número(valor);
       dado_t antigo = dic_insere(d, n2, valor_str);
-      if (antigo != VALOR_NÃO_EXISTE) s_destroi(antigo);
+      if (antigo != VALOR_NÃO_EXISTE) {
+        s_destroi(antigo);
+        s_destroi(n2);
+      }
       s_destroi(n1);
       return s_cria_cópia(valor_str);
     default:
       s_destroi(n1);
       s_destroi(n2);
-      return s_cria("#ERRO esse operador não devia ta aqui");
+      return s_cria("#ERRO esse operador não devia estar aqui");
       break;
   }
   dado_t strres = s_cria_número(res);
@@ -228,7 +237,7 @@ Str finaliza_calc (Lista operadores, Lista operandos, Dicionário variaveis) {
     s_destroi(d);
     // se algum parenteses nao foi fechado
     if (op == '(') {
-      return s_cria("#ERRO");
+      return s_cria("#ERRO parenteses não foi fechado");
     }
 
     // executa op
@@ -236,22 +245,24 @@ Str finaliza_calc (Lista operadores, Lista operandos, Dicionário variaveis) {
     if (!teve_erro(s)) {
       l_empilha(operandos, s);
     } else {
-      s_destroi(s);
-      return s_cria("#ERRO");
+      return s;
     }
   }
   if (l_tam(operandos) != 1) {
-    return s_cria("#ERRO");
+    return s_cria("#ERRO sobrou operando");
   }
   dado_t final = l_desempilha(operandos);
   if (é_variavel(final)) {
     bool erro = false;
     double valor = valor_operando(final, variaveis, &erro);
     s_destroi(final);
-    if (erro) return s_cria("#ERRO");
+    if (erro) return s_cria("#ERRO busca de variável que não existe no dicionário");
     return s_cria_número(valor);
   }
-  return final;
+  // pra padronizar as casas decimais caso a linha só tenha "5", por exemplo
+  double v = s_número(final);
+  s_destroi(final);
+  return s_cria_número(v);
 }
 
 // Calcula o valor de expressão e retorna uma nova Str contendo o resultado.
@@ -262,13 +273,9 @@ Str calculadora(Str expressão) {
   Lista tokens = tokeniza(expressão);
   Lista operando_num = l_cria();
   Lista operador = l_cria();
-  bool num_var = true; // true se for num, false se for variavel 
   int err = 0;
-  
-  // essa parte poe os tokens nas pilhas certas, é interessante criar uma função separada pra isso
-  // ver com professor
+
   while (!l_vazia(tokens)) {
-    num_var = true;
     dado_t d = l_remove_inicio(tokens);
     unichar c = s_ch(d, 0);
     if (é_operador(c)) {
@@ -279,14 +286,16 @@ Str calculadora(Str expressão) {
       l_empilha(operando_num, d);
     }
     else {
+      s_destroi(d);
       err = -1;
+      break;
     }
   }
   l_destroi(tokens);
   if (err == -1) {
     l_destroi(operador);
     l_destroi(operando_num);
-    return s_cria("#ERRO");
+    return s_cria("#ERRO token inválido");
   }
 
   Str sres = finaliza_calc(operador, operando_num, variaveis);

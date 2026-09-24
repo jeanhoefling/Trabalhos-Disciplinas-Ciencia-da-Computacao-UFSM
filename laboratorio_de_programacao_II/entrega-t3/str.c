@@ -470,7 +470,7 @@ void s_grava_arquivo(Str_c s, char *nome)
 }
 
 Str s_cria_número(double num) {
-  char v[100];
+  char v[300];
   sprintf(v, "%lf", num);
   return s_cria(v);
 }

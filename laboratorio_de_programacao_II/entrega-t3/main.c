@@ -5,23 +5,22 @@
 int main() {
   char nome[50];
   printf("Escreva o nome do arquivo para calcular: ");
-  scanf("%s", nome);
-  FILE *arq_in = fopen(nome, "r");
-  assert(arq_in != NULL);
-
-  Lista l_in = l_cria();
-  Lista l_out = l_cria();
-  char lin[2000];
-  while (fgets(lin, 2000, arq_in) != NULL) {
-    Str s = s_cria(lin);
-    l_insere_fim(l_in, s);
-    Str res_calc = calculadora(s);
-    l_insere_fim(l_out, res_calc);
-  }
+  scanf("%49s", nome);
+  Str s_arq = s_cria_de_arquivo(nome);
   Str sep = s_cria("\n");
+  Lista l_in = l_cria_separando(s_arq, sep);
+  Lista l_out = l_cria();
+  while (!l_vazia(l_in)) {
+    Str s_lin = l_remove_inicio(l_in);
+    Str res_calc = calculadora(s_lin);
+    l_insere_fim(l_out, res_calc);
+    s_destroi(s_lin);
+  }
   Str res = s_cria_unindo(l_out, sep);
   s_grava_arquivo(res, "resultados.txt");
-  l_destroi(l_in);
+  s_destroi(sep);
+  s_destroi(res);
   l_destroi(l_out);
-  fclose(arq_in);
+  l_destroi(l_in);
+  l_destroi(s_arq);
 }

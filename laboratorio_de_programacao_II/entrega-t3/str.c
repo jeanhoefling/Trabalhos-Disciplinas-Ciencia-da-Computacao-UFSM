@@ -119,7 +119,7 @@ Str s_cria_de_arquivo(char *nome)
     c = fgetc(arq);
     i++;
   }
-  v[tamanho] = '\0';
+  v[i] = '\0';
 
   Str s = s_cria(v);
   s_destroi(s_vazia);

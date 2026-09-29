@@ -17,11 +17,13 @@ bool menor_str(chave_t a, chave_t b) {
   return ta < tb;
 }
 
+// verifica se o unichar é operador
 bool é_operador (unichar c) {
-  if (c == '+' || c == '-' || c == '*' || c == '/'  || c == '^' || c == '(' || c == ')' || c == '=') return 1;
-  return 0;
+  if (c == '+' || c == '-' || c == '*' || c == '/'  || c == '^' || c == '(' || c == ')' || c == '=') return true;
+  return false;
 }
 
+// verifica se a string é numero
 bool é_numero (dado_t d) {
   int cont_pontos = 0;
   int cont_menos = 0;
@@ -46,6 +48,7 @@ bool é_numero (dado_t d) {
   return true;
 }
 
+// verifica se a string é uma variavel
 bool é_variavel(dado_t d) {
   unichar c = s_ch(d, 0);
   if (!(c == '$' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))) return false;
@@ -56,20 +59,22 @@ bool é_variavel(dado_t d) {
   return true;
 }
 
-bool teve_erro (dado_t s1) { //essa serve para verificar se executa_op retornou "#ERRO", não = 0; sim = 1
+// verifica se a string recebida começa com "#ERRO"
+bool teve_erro (dado_t s1) {
   dado_t s2 = s_cria("#ERRO");
   dado_t s1_corte = s_cria("");
   s_substring(s1_corte, s1, 0, 5);
   if (s_igual(s1_corte, s2)) {
     s_destroi(s1_corte);
     s_destroi(s2);
-    return 1;
+    return true;
   }
   s_destroi(s1_corte);
   s_destroi(s2);
-  return 0;
+  return false;
 }
 
+// retorna o valor do operando recebido, se for num chama s_número, se for variável busca no dicionario
 double valor_operando(dado_t operando, Dicionário dic, bool *erro)
 {
   if (é_numero(operando)) {
@@ -84,6 +89,7 @@ double valor_operando(dado_t operando, Dicionário dic, bool *erro)
   return s_número(valor);
 }
 
+// desempilha os operandos e executa a operação recebida
 dado_t executa_op (unichar op, Lista operandos, Dicionário d) {
   if (l_tam(operandos) < 2) {
     return s_cria("#ERRO operandos insuficientes");
@@ -156,14 +162,15 @@ dado_t executa_op (unichar op, Lista operandos, Dicionário d) {
   return strres;
 }
 
-// retorna NULL se ok, alguma str se deu erro
+// Decide se opera ou empilha com base na tabela fornecida
+// retorna NULL se tudo ok, retorna alguma str se deu erro
 dado_t opera_ou_empilha(Lista operadores, Lista operandos, Dicionário variaveis, dado_t d) {
   Str ret = NULL;
   unichar op_atual = s_ch(d, 0);
   if (l_vazia(operadores)) {
     if (op_atual != ')') {
         l_empilha(operadores, d);
-        return 0;
+        return NULL;
     }
     else {  
       s_destroi(d);
@@ -246,7 +253,6 @@ Str finaliza_calc (Lista operadores, Lista operandos, Dicionário variaveis) {
     dado_t d = l_desempilha(operadores);
     unichar op = s_ch(d, 0);
     s_destroi(d);
-    // se algum parenteses nao foi fechado
     if (op == '(') {
       return s_cria("#ERRO parenteses não foi fechado");
     }
@@ -259,8 +265,10 @@ Str finaliza_calc (Lista operadores, Lista operandos, Dicionário variaveis) {
       return s;
     }
   }
-  if (l_tam(operandos) != 1) {
+  if (l_tam(operandos) > 1) {
     return s_cria("#ERRO sobrou operando");
+  } else if (l_tam(operandos) == 0) {
+    return s_cria("#ERRO linha sem operandos");
   }
   dado_t final = l_desempilha(operandos);
   if (é_variavel(final)) {

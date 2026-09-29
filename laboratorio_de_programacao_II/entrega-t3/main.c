@@ -22,5 +22,5 @@ int main() {
   s_destroi(res);
   l_destroi(l_out);
   l_destroi(l_in);
-  l_destroi(s_arq);
+  s_destroi(s_arq);
 }

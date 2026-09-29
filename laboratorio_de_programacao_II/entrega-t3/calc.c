@@ -5,7 +5,16 @@ bool igual_str(chave_t a, chave_t b) {
 }
 
 bool menor_str(chave_t a, chave_t b) {
-  return true;
+  Str sa = a;
+  Str sb = b;
+  int ta = s_tam(sa);
+  int tb = s_tam(sb);
+  for (int i = 0; i < ta && i < tb; i++) {
+    unichar ca = s_ch(sa, i);
+    unichar cb = s_ch(sb, i);
+    if (ca != cb) return ca < cb;
+  }
+  return ta < tb;
 }
 
 bool é_operador (unichar c) {
@@ -147,17 +156,18 @@ dado_t executa_op (unichar op, Lista operandos, Dicionário d) {
   return strres;
 }
 
-int opera_ou_empilha(Lista operadores, Lista operandos, Dicionário variaveis, dado_t d) { // retorna 0 se ok, -1 se err
-  int ret;
+// retorna NULL se ok, alguma str se deu erro
+dado_t opera_ou_empilha(Lista operadores, Lista operandos, Dicionário variaveis, dado_t d) {
+  Str ret = NULL;
   unichar op_atual = s_ch(d, 0);
   if (l_vazia(operadores)) {
     if (op_atual != ')') {
         l_empilha(operadores, d);
         return 0;
     }
-    else {
+    else {  
       s_destroi(d);
-      return -1;
+      return s_cria("#ERRO expressão fecha parenteses sem ter aberto");
     }
   }
   
@@ -170,16 +180,15 @@ int opera_ou_empilha(Lista operadores, Lista operandos, Dicionário variaveis, d
       if (!teve_erro(s)) {
         l_empilha(operandos, s);
       } else {
-        s_destroi(s);
         s_destroi(d);
-        return -1;
+        return s;
       }
       ret = opera_ou_empilha(operadores, operandos, variaveis, d);
       return ret;
     }
     else {
       l_empilha(operadores, d);
-      return 0;
+      return NULL;
     }
   }
   else if (op_antes == '*' || op_antes == '/' || op_antes == '^') {
@@ -189,27 +198,26 @@ int opera_ou_empilha(Lista operadores, Lista operandos, Dicionário variaveis, d
       if (!teve_erro(s)) {
         l_empilha(operandos, s);
       } else {
-        s_destroi(s);
         s_destroi(d);
-        return -1;
+        return s;
       }
       ret = opera_ou_empilha(operadores, operandos, variaveis, d);
       return ret;
     }
     else {
       l_empilha(operadores, d);
-      return 0;
+      return NULL;
     }
   }
   else if (op_antes == '(') {
     if (op_atual == ')') {
       s_destroi(l_desempilha(operadores));
       s_destroi(d);
-      return 0;
+      return NULL;
     }
     else {
       l_empilha(operadores, d);
-      return 0;
+      return NULL;
     }
   }
   else if (op_antes == '=') {
@@ -217,16 +225,19 @@ int opera_ou_empilha(Lista operadores, Lista operandos, Dicionário variaveis, d
       s_destroi(l_desempilha(operadores));
       dado_t s = executa_op(op_antes, operandos, variaveis);
       if (!teve_erro(s)) l_empilha(operandos, s);
-      else { s_destroi(s); s_destroi(d); return -1; }
+      else { 
+        s_destroi(d); 
+        return s; 
+      }
       return opera_ou_empilha(operadores, operandos, variaveis, d);
     } else {
       l_empilha(operadores, d);
-      return 0;
+      return NULL;
     }
   }
   else {
     s_destroi(d);
-    return -1;
+    return s_cria("#ERRO no calc, um operador chegou em um lugar que não deveria.");
   }
 }
 
@@ -273,29 +284,31 @@ Str calculadora(Str expressão) {
   Lista tokens = tokeniza(expressão);
   Lista operando_num = l_cria();
   Lista operador = l_cria();
-  int err = 0;
+  Str err = NULL;
 
   while (!l_vazia(tokens)) {
     dado_t d = l_remove_inicio(tokens);
     unichar c = s_ch(d, 0);
     if (é_operador(c)) {
       err = opera_ou_empilha(operador, operando_num, variaveis, d);
-      if (err == -1) break;
+      if (err != NULL) {
+        break;
+      }
     }
     else if (é_numero(d) || é_variavel(d)) {
       l_empilha(operando_num, d);
     }
     else {
       s_destroi(d);
-      err = -1;
+      err = s_cria("#ERRO token inválido");
       break;
     }
   }
   l_destroi(tokens);
-  if (err == -1) {
+  if (err != NULL) {
     l_destroi(operador);
     l_destroi(operando_num);
-    return s_cria("#ERRO token inválido");
+    return err;
   }
 
   Str sres = finaliza_calc(operador, operando_num, variaveis);

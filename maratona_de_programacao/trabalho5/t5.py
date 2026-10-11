@@ -1,135 +1,124 @@
+import sys
 from collections import deque
 
-# Leitura das entradas
-l, c = map(int, input().split())
+sys.setrecursionlimit(10000)
 
-rec = []
-for _ in range (0, l):
-    s = input()
-    lin = []
-    for car in s:
-        lin.append(car)
-    rec.append(lin)
+linhas, colunas = map(int, input().split())
 
-bomba = (0, int(input()))
+recipiente = []
+for _ in range(linhas):
+    recipiente.append(input().strip())
+
+coluna_bomba = int(input())
+
+agua = [[False] * colunas for _ in range(linhas)]  # matriz que guarda onde tem agua
+agua_por_linha = [0] * linhas                      # vetor de contagem
+escapou = False  # se um litro se perdeu, os próximos também (nada mais muda)
 
 
-# direcoes
-direcoes = [
-    (-1, 0),  # cima
-    (1, 0),   # baixo
-    (0, -1),  # esquerda
-    (0, 1)    # direita
-]
+# Desce reto ate achar obstaculo
+def descer(l, c):
+    if l + 1 < linhas and recipiente[l + 1][c] != 'O':
+        return descer(l + 1, c)
+    return l
 
-pilha_dfs = [bomba]
-visitados = {bomba}
 
-while pilha_dfs:
-    i, j = pilha_dfs.pop()
+# Verdadeiro se todas as celulas da linha (do primeiro obstaculo a esquerda ate o primeiro da direita) 
+# ja tem agua
+def linha_cheia(i, j):
+    esq = j
+    while esq - 1 >= 0 and recipiente[i][esq - 1] != 'O':
+        esq -= 1
 
-    for di, dj in direcoes:
-        ni = i + di
-        nj = j + dj
+    dir = j
+    while dir + 1 < colunas and recipiente[i][dir + 1] != 'O':
+        dir += 1
 
-        if 0 <= ni < l and 0 <= nj < c:
-            if rec[ni][nj] == '.' and (ni, nj) not in visitados:
-                visitados.add((ni, nj))
-                pilha_dfs.append((ni, nj))
+    for c in range(esq, dir + 1):
+        if not agua[i][c]:
+            return False
 
-print(visitados)
+    return True
 
-def bfs_profundidade(inicio):
-    fila = deque([inicio])
-    visitados = {inicio}
 
-    maior_linha = inicio[0]
+
+def bfs(linha, coluna):
+    visitadas = {(linha, coluna)}
+    fila = deque([(linha, coluna)])
+    possiveis = []  # posicoes onde o litro pode ficar
 
     while fila:
         i, j = fila.popleft()
 
-        maior_linha = max(maior_linha, i)
+        #buraco no fundo
+        if i == linhas - 1:
+            return possiveis, True
 
-        for di, dj in [(1, 0), (0, -1), (0, 1)]:
-            ni = i + di
-            nj = j + dj
+        embaixo_livre = recipiente[i + 1][j] != 'O'
 
-            if 0 <= ni < l and 0 <= nj < c:
-                if rec[ni][nj] == '.' and (ni, nj) not in visitados:
-                    visitados.add((ni, nj))
-                    fila.append((ni, nj))
+        if not agua[i][j] and (not embaixo_livre or agua[i + 1][j]):
+            possiveis.append((i, j))
 
-    return maior_linha
+        vizinhos = []
 
-# Le a matriz e printa quanto de agua em cada nivel
-def agua_nivel (mat):
-    aguas_nivel = []
-    for lin in mat:
-        agua_lin = 0
-        for i in lin:
-            if i == 'A':
-                agua_lin += 1
-        aguas_nivel.append(f"{agua_lin}")
-    print(f"{' '.join(aguas_nivel)}")
+        if embaixo_livre and not agua[i + 1][j]:
+            vizinhos.append((descer(i, j), j))      # só cai
+        else:
+            vizinhos += [(i, j - 1), (i, j + 1)]    # obstaculo ou agua embaixo: espalha
+            if embaixo_livre:
+                vizinhos.append((descer(i, j), j))
 
+        if agua[i][j] and linha_cheia(i, j):
+            vizinhos.append((i - 1, j))
 
-def espalha_lateral(i, j):
-    # esquerda
-    esq = j - 1
-    while esq >= 0 and rec[i][esq] == '.':
-        rec[i][esq] = 'A'
-        esq -= 1
+        for ni, nj in vizinhos:
+            if (0 <= ni < linhas and 0 <= nj < colunas
+                    and recipiente[ni][nj] != 'O' and (ni, nj) not in visitadas):
+                visitadas.add((ni, nj))
+                fila.append((ni, nj))
 
-    # direita
-    dir = j + 1
-    while dir < c and rec[i][dir] == '.':
-        rec[i][dir] = 'A'
-        dir += 1
-
-    # a própria posição
-    rec[i][j] = 'A'
-
-def escolhe_lado(i, j):
-    esquerda = (i, j - 1)
-    direita = (i, j + 1)
-
-    if 0 <= j - 1 < c and rec[i][j - 1] == '.':
-        prof_esq = bfs_profundidade(esquerda)
-    else:
-        prof_esq = -1
-
-    if 0 <= j + 1 < c and rec[i][j + 1] == '.':
-        prof_dir = bfs_profundidade(direita)
-    else:
-        prof_dir = -1
-
-    print("ESQ:", prof_esq, "DIR:", prof_dir)
-
-    if prof_esq > prof_dir:
-        return esquerda
-    elif prof_dir > prof_esq:
-        return direita
-    else:
-        return (i, j)
+    return possiveis, False
 
 
-# loop dos bombeamentos
+# Retorna false se o litro se perdeu (por baixo ou por cima)
+def bombear_um_litro():
+    if recipiente[0][coluna_bomba] == 'O':
+        return False
+
+    linha = descer(0, coluna_bomba)
+    possiveis, buraco = bfs(linha, coluna_bomba)
+
+    if buraco or not possiveis:
+        return False  # vazou pelo fundo ou passou do topo
+
+    # escolhe a mais funda, empate fica a primeira da BFS (mais perto, esquerda primeiro)
+    i, j = possiveis[0]
+
+    for ci, cj in possiveis:
+        if ci > i:
+            i, j = ci, cj
+
+    agua[i][j] = True
+    agua_por_linha[i] += 1
+    return True
+
+
+def bombear(qnt):
+    global escapou
+
+    for _ in range(qnt):
+        if escapou:
+            break
+        n_escap = bombear_um_litro()
+        if not n_escap:
+            escapou = True
+
 while True:
     qnt = int(input())
+
     if qnt == 0:
         break
-    for i in range (0, qnt):
-        posi, posj = bomba
-        while True:
-            if posi + 1 < l and rec[posi + 1][posj] == '.':
-                posi += 1
-                continue
 
-            print("água em:", posi, posj)
-            posin, posjn = escolhe_lado(posi, posj)
-            if (posjn == posj):
-                espalha_lateral(posi, posj)
-                break
-            posj = posjn
+    bombear(qnt)
 
-
+    print(' '.join(map(str, agua_por_linha)))

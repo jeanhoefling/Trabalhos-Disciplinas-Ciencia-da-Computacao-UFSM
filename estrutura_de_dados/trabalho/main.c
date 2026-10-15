@@ -5,11 +5,13 @@
 
 int main () {
     srand(time(NULL));
-    Treap arv = cria_arvore();
+    Treap arv = cria_treap();
 
-    for (int i = 0; i < 64; i++) {
-        insere(arv, i);
+    for (int i = 0; i < 8; i++) {
+        insere_treap(arv, i);
     }
+
+    remove_treap(arv, 3);
 
 
     return 0;   

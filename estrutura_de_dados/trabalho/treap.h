@@ -7,14 +7,16 @@ typedef struct treap *Treap;
 
 /* Retorna NULL se a alocação falhou da árvore falhou, caso contrário retorna um ponteiro
 para a árvore */
-Treap cria_arvore ();
+Treap cria_treap ();
 
 // Busca um valor na árvore. Retorna true se encontrar, false se não.
-bool busca (Treap arv, int valor);
+bool busca_treap (Treap arv, int valor);
 
 // Insere um no com "valor" na árvore. Retorna true se conseguiu, false se não.
-bool insere (Treap arv, int valor);
+bool insere_treap (Treap arv, int valor);
 
+// Remove um no com "valor" na árvore. Retorna true se conseguiu, false se não.
+bool remove_treap (Treap arv, int valor);
 
 
 #endif

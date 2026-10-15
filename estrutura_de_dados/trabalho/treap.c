@@ -59,44 +59,61 @@ bool busca (Treap arv, int valor) {
     return (busca_no(arv->raiz, valor) != NULL);
 }
 
-
-bool insere (Treap arv, int valor) {
-    // Caso seja o primeiro nó a ser inserido
-    if (arv->elementos == 0) {
-        No *novo = cria_no(valor);
-        if (novo == NULL) return false;
-        arv->raiz = novo;
-        arv->elementos++;
-        return true;
-    }
-
-
-    insere_no(arv->raiz, NULL, valor);
-    if (elemen)
-
-    arv->elementos++;
-    return true;
+static void rotacao_direita(No **raiz) {
+    No *nova_raiz = (*raiz)->esq;
+    (*raiz)->esq = nova_raiz->dir;
+    nova_raiz->dir = *raiz;
+    *raiz = nova_raiz;
 }
 
-bool insere_no (No *no, No* pai, int valor) {
-    if (no == NULL) { // Chegou na folha
+static void rotacao_esquerda(No **raiz) {
+    No *nova_raiz = (*raiz)->dir;
+    (*raiz)->dir = nova_raiz->esq;
+    nova_raiz->esq = *raiz;
+    *raiz = nova_raiz;
+}
+
+
+static bool insere_no (No **no, int valor) {
+    if (*no == NULL) { // Chegou na folha
         No *novo = cria_no(valor);
         if (novo == NULL) return false;
 
-        if (pai->valor > valor) {
-            pai->esq = novo;
-        } else {
-            pai->dir = novo;
-        }
+        *no = novo;
         return true;
     }
     
-    if (no->valor == valor) {
-        printf("Não é permitido adicionar valores duplicados na árvore.\n")
+    if ((*no)->valor == valor) {
+        printf("Não é permitido adicionar valores duplicados na árvore.\n");
         return false;
     }
 
 
-    else if (no->valor > valor) return insere_no(no->esq, no, valor);
-    else return insere_no_no(no->dir, no, valor);
+    else if ((*no)->valor > valor) {
+        bool rec = insere_no(&(*no)->esq, valor);
+        if (rec) {
+            if ((*no)->esq->prio > (*no)->prio) rotacao_direita(no);
+        }
+        return rec;
+    }
+    else {
+        bool rec = insere_no(&(*no)->dir, valor);
+        if (rec) {
+            if ((*no)->dir->prio > (*no)->prio) rotacao_esquerda(no);
+        }
+        return rec;
+    }
+}
+
+
+bool insere (Treap arv, int valor) {
+    if (arv == NULL) {
+        printf("Tentativa de inserção em árvore inexistente!\n");
+        return false;
+    }
+
+    if (!insere_no(&arv->raiz, valor)) return false;
+
+    arv->elementos++;
+    return true;
 }

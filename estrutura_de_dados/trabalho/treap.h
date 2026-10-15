@@ -15,4 +15,6 @@ bool busca (Treap arv, int valor);
 // Insere um no com "valor" na árvore. Retorna true se conseguiu, false se não.
 bool insere (Treap arv, int valor);
 
+
+
 #endif

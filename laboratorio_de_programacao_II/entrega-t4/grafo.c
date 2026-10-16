@@ -17,8 +17,16 @@
 //   por exemplo). O usuário pode também alterar o valor usando uma função
 //   de alteração (como g_altera_valor_do_nó).
 
+#include "grafo.h"
+#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+
+#define SAIDA 1
+#define ENTRADA 2
+
+#define AUMENTA 3
+#define DIMINUI 4
 
 typedef struct aresta {
   int origem;
@@ -41,7 +49,7 @@ struct grafo {
   int tam_no;
   int tam_aresta;
   int tam_alocado;
-}
+};
 
 Grafo g_cria(int tam_nó, int tam_aresta) {
   Grafo g = (Grafo) malloc(sizeof(struct grafo));
@@ -59,23 +67,39 @@ void g_destrói(Grafo self);
 
 // Nós
 
-// JEAN: Aloca memória para o vetor de nós do grafo conforme necessario (min 8)
-static void realoca (Grafo self) {
-  if (self->tam_alocado == 0) {
-    self->nos = malloc(sizeof(No) * 8);
-    assert(self->nos != NULL);
-    self->tam_alocado = 8;
+/* JEAN: Aloca memória para o vetor de nós do grafo conforme necessario (min 8)
+O parametro op diz se deve aumentar a alocação ou diminuir*/
+static void realoca (Grafo self, char op) {
+  if (op == AUMENTA) {
+    if (self->tam_alocado == 0) {
+      self->nos = malloc(sizeof(No) * 8);
+      assert(self->nos != NULL);
+      self->tam_alocado = 8;
+    }
+    else {
+      No *temp = realloc(self->nos, sizeof(No) * self->tam_alocado * 2);
+      assert(temp != NULL);
+      self->nos = temp;
+      self->tam_alocado = self->tam_alocado * 2;
+    }
   }
   else {
-    No *temp = realloc(self->nos, sizeof(No) * self->tam_alocado * 2);
-    assert(temp != NULL);
-    self->nos = temp;
-    self->tam_alocado = self->tam_alocado * 2;
+    if (self->num_nos == 0) {
+      free(self->nos);
+      self->nos = NULL
+      self->tam_alocado = 0;
+    }
+    else {
+      No *temp = realloc(self->nos, sizeof(No) * self->tam_alocado / 2);
+      assert(temp != NULL);
+      self->nos = temp;
+      self->tam_alocado = self->tam_alocado / 2;
+    }
   }
 }
 
 int g_insere_nó(Grafo self, void *p_dado) {
-  if (self->num_nos >= self->tam_alocado) realoca(self);
+  if (self->num_nos >= self->tam_alocado) realoca(self, AUMENTA);
 
   No *no = &self->nos[self->num_nos];
 
@@ -89,22 +113,61 @@ int g_insere_nó(Grafo self, void *p_dado) {
   return self->num_nos - 1;
 }
 
+/* JEAN: Função para liberar memória de uma aresta e ajustar o encadeamento das 2 listas
+Se ajuste == SAIDA, significa que precisa ajustar o encadeamento das arestas de saida
+Se ajuste == ENTRADA, significa que precisa ajustar o encadeamento das arestas de entrada*/
+static void libera_aresta(Grafo self, Aresta *a, char ajuste) {
+  if (ajuste == SAIDA) {
+    Aresta **at = &self->nos[a->origem].saidas;
+    while (*at != NULL && *at != a) {
+      at = &(*at)->prox_saida;
+    }
+    if (*at != NULL) {
+        *at = a->prox_saida;
+    }
+  } 
+  else {
+    Aresta **at = &self->nos[a->destino].entradas;
+    while (*at != a && *at != NULL) {
+      at = &(*at)->prox_entrada;
+    }
+    if (*at != NULL) {
+      *at = a->prox_entrada;
+    }
+  }
+
+  free(a->valor);
+  free(a);
+}
 // remove um nó do grafo e as arestas incidentes nesse nó
 // a identificação dos nós remanescentes é alterada, como se esse nó nunca
 //   tivesse existido
 void g_remove_nó(Grafo self, int nó) {
-  if (nó > self->num_nos - 1) return;
+  if (nó < 0 || nó >= self->num_nos) return;
   
   No *remov = &self->nos[nó]; 
 
+  Aresta *a = remov->entradas 
+  while (a != NULL) {
+    Aresta *temp = a;
+    a = a->prox_entrada;
+    libera_aresta(self, temp, SAIDA);
+  }
+  a = remov->saidas
+  while (a != NULL) {
+    Aresta *temp = a;
+    a = a->prox_saida;
+    libera_aresta(self, temp, ENTRADA);
+  }
+
+  free(remov->dado);
   for (int i = nó; i < self->num_nos - 1; i++) {
     self->nos[i] = self->nos[i+1];
   }
 
-
-
-  if (self->num_nos < self->tam_alocado / 2) realoca(self); // tem que ajustar realoca
   self->num_nos--;
+  if (self->num_nos <= self->tam_alocado / 2 && self->num_nos >= 8
+  || self->num_nos == 0) realoca(self, DIMINUI);
 }
 
 // altera o valor associado a um nó (copia o valor apontado por p_dado para

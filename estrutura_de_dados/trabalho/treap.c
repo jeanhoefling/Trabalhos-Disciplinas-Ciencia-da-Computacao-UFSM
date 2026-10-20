@@ -30,6 +30,7 @@ Treap cria_treap () {
         return NULL;
     }
 
+    srand(time(NULL));
     arv->raiz = NULL;
     arv->elementos = 0;
 

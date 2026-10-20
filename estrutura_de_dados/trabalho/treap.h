@@ -1,3 +1,8 @@
+/* ORIENTAÇÕES IMPORTANTES:
+1. O TAD utiliza allegro em uma de suas funções, portanto compile com: 
+gcc main.c treap.c -o treap -lallegro_primitives -lallegro_font -lallegro
+2. O tipo de dado a ser manipulado é int*/
+
 #ifndef TREAP_H
 #define TREAP_H
 
@@ -5,8 +10,8 @@
 
 typedef struct treap *Treap;
 
-/* Retorna NULL se a alocação falhou da árvore falhou, caso contrário retorna um ponteiro
-para a árvore */
+/* Retorna NULL se a alocação da árvore falhou, caso contrário retorna um ponteiro
+para a árvore. Além disso "semeia" o rand usado para criar nós */
 Treap cria_treap ();
 
 // Busca um valor na árvore. Retorna true se encontrar, false se não.

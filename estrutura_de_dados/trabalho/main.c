@@ -1,10 +1,8 @@
-#include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "treap.h"
 
 int main () {
-    srand(time(NULL));
     Treap arv = cria_treap();
 
     for (int i = 1; i <= 64; i++) {

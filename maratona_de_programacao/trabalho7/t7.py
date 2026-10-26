@@ -30,30 +30,38 @@ def naive_distinctSum(arr):
 
 
 ## BETTER SEM CACHE
+def better_distSumRec(arr, n, sum_val, i, memo):
+    if i == n:
+        memo[i][sum_val] = 1
+        return
+
+    if memo[i][sum_val] != -1:
+        return
+
+    # Mark the current state as visited
+    memo[i][sum_val] = 1
+
+    # Include the current element
+    better_distSumRec(arr, n, sum_val + arr[i], i + 1, memo)
+
+    # Exclude the current element
+    better_distSumRec(arr, n, sum_val, i + 1, memo)
+
+
+# Generate distinct subset sums using memoization
 def better_distinctSum(arr):
     n = len(arr)
     total_sum = sum(arr)
 
-    dp = [[False] * (total_sum + 1) for _ in range(n + 1)]
+    memo = [[-1] * (total_sum + 1) for _ in range(n + 1)]
 
-    # Sum 0 is possible using an empty subset
-    for i in range(n + 1):
-        dp[i][0] = True
-
-    # Fill the DP table in bottom-up manner
-    for i in range(1, n + 1):
-        dp[i][arr[i - 1]] = True
-
-        for j in range(1, total_sum + 1):
-            if dp[i - 1][j]:
-                dp[i][j] = True
-                dp[i][j + arr[i - 1]] = True
+    better_distSumRec(arr, n, 0, 0, memo)
 
     result = []
 
-    for j in range(total_sum + 1):
-        if dp[n][j]:
-            result.append(j)
+    for sum_val in range(total_sum + 1):
+        if memo[n][sum_val] == 1:
+            result.append(sum_val)
 
     return result
 
@@ -80,7 +88,7 @@ tams = [10, 20, 25, 50, 100, 150]
 for tam in tams:
     arr = []
     for i in range (tam):
-        arr.append(i)
+        arr.append(i) #Testar com i*100, i*1000...
     if tam <= 25:
         t0 = time.perf_counter()
         result = naive_distinctSum(arr)

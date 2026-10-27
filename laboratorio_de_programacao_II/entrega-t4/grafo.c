@@ -53,26 +53,9 @@ struct grafo {
   bool consulta_saidas; // True se estiver consultando saidas, false se consultando entradas
 };
 
-Grafo g_cria(int tam_nó, int tam_aresta) {
-  Grafo g = (Grafo) malloc(sizeof(struct grafo));
-  assert(g != NULL);
-  g->nos = NULL;
-  g->num_nos = 0;
-  g->tam_no = tam_nó;
-  g->tam_aresta = tam_aresta;
-  g->tam_alocado = 0;
-  g->atual = NULL;
-  g->no_consultado = -1;
-  g->consulta_saidas = false;
-  return g;
-}
+/* JEAN: FUNÇÕES AUXILIARES QUE NÃO SÃO DO TAD */
 
-// libera a memória ocupada por um grafo
-void g_destrói(Grafo self);
-
-// Nós
-
-/* JEAN: Aloca memória para o vetor de nós do grafo conforme necessario (min 8)
+/* Aloca memória para o vetor de nós do grafo conforme necessario (min 8)
 O parametro op diz se deve aumentar a alocação ou diminuir*/
 static void realoca (Grafo self, char op) {
   if (op == AUMENTA) {
@@ -103,23 +86,7 @@ static void realoca (Grafo self, char op) {
   }
 }
 
-int g_insere_nó(Grafo self, void *p_dado) {
-  if (self->num_nos >= self->tam_alocado) realoca(self, AUMENTA);
-
-  No *no = &self->nos[self->num_nos];
-
-  no->dado = malloc(self->tam_no);
-  assert(no->dado != NULL);
-  memcpy(no->dado, p_dado, self->tam_no);
-  no->entradas = NULL;
-  no->saidas = NULL;
-
-  self->num_nos++;
-  return self->num_nos - 1;
-}
-
-/* JEAN: Função para liberar arestas conectadas a um nó e ajustar o encadeamento
-das 2 listas */
+/* Função para liberar arestas conectadas a um nó e ajustar o encadeamento das 2 listas */
 static void libera_aresta(Grafo self, No *remov, int nó) {
   for (int i = 0; i < self->num_nos; i++) {
     No *atual = &self->nos[i];
@@ -149,6 +116,125 @@ static void libera_aresta(Grafo self, No *remov, int nó) {
     }
   }
 }
+
+static void remove_aresta (Grafo self, int nó_origem, int nó_destino) {
+  No *origem = &self->nos[nó_origem];
+  No *destino = &self->nos[nó_destino];
+
+  Aresta **a = &origem->saidas;
+  while ((*a)->destino != nó_destino) {
+    a = &(*a)->prox_saida;
+  }
+  Aresta *removida = *a;
+  *a = (*a)->prox_saida;
+
+  a = &destino->entradas;
+  while (*a != removida) {
+    a = &(*a)->prox_entrada;
+  }
+  *a = (*a)->prox_entrada;
+
+  free(removida->valor);
+  free(removida);
+}
+
+static void cria_aresta (Grafo self, int nó_origem, int nó_destino, void *p_dado) {
+  Aresta *nova = malloc(sizeof(Aresta));
+  assert(nova != NULL);
+  nova->origem = nó_origem;
+  nova->destino = nó_destino;
+  nova->valor = malloc(self->tam_aresta);
+  assert(nova->valor != NULL);
+  memcpy(nova->valor, p_dado, self->tam_aresta);
+
+  nova->prox_saida = self->nos[nó_origem].saidas;
+  self->nos[nó_origem].saidas = nova;
+  nova->prox_entrada = self->nos[nó_destino].entradas;
+  self->nos[nó_destino].entradas = nova;
+}
+
+static bool existe_aresta (Grafo self, int nó_origem, int nó_destino) {
+  No *origem = &self->nos[nó_origem];
+  Aresta *a = origem->saidas;
+  while (a != NULL && a->destino != nó_destino) {
+    a = a->prox_saida;
+  }
+  return (a != NULL);
+}
+
+static bool rec_ciclo (Grafo self, int *estados, int no) {
+  Aresta *a = self->nos[no].saidas;
+  estados[no] = 1;
+  while (a != NULL) {
+    if (estados[a->destino] == 1) return true;
+    if (estados[a->destino] == 0) {
+        if (rec_ciclo(self, estados, a->destino)) return true;
+    }
+    a = a->prox_saida;
+  }
+  estados[no] = 2;
+  return false;
+}
+
+static void calcula_graus_entrada (Grafo self, int *v) {
+  for (int i = 0; i < self->num_nos; i++) {
+    Aresta *a = self->nos[i].entradas;
+    int cont = 0;
+    while (a != NULL) {
+      a = a->prox_entrada;
+      cont++;
+    }
+    v[i] = cont;
+  }
+}
+
+static void diminui_graus_entrada(Grafo self, int *v, int i) {
+  Aresta *a = self->nos[i].saidas;
+  while (a != NULL) {
+    v[a->destino]--;
+    a = a->prox_saida;
+  }
+}
+
+// FUNÇÕES DO TAD
+
+Grafo g_cria(int tam_nó, int tam_aresta) {
+  Grafo g = (Grafo) malloc(sizeof(struct grafo));
+  assert(g != NULL);
+  g->nos = NULL;
+  g->num_nos = 0;
+  g->tam_no = tam_nó;
+  g->tam_aresta = tam_aresta;
+  g->tam_alocado = 0;
+  g->atual = NULL;
+  g->no_consultado = -1;
+  g->consulta_saidas = false;
+  return g;
+}
+
+// libera a memória ocupada por um grafo
+void g_destrói(Grafo self) {
+  while (self->num_nos > 0) g_remove_nó(self, 0);
+  free(self->nos);
+  free(self);
+}
+
+// Nós
+int g_insere_nó(Grafo self, void *p_dado) {
+  if (self->num_nos >= self->tam_alocado) realoca(self, AUMENTA);
+
+  No *no = &self->nos[self->num_nos];
+
+  no->dado = malloc(self->tam_no);
+  assert(no->dado != NULL);
+  memcpy(no->dado, p_dado, self->tam_no);
+  no->entradas = NULL;
+  no->saidas = NULL;
+
+  self->num_nos++;
+  return self->num_nos - 1;
+}
+
 // remove um nó do grafo e as arestas incidentes nesse nó
 // a identificação dos nós remanescentes é alterada, como se esse nó nunca
 //   tivesse existido
@@ -197,54 +283,6 @@ int g_num_nós(Grafo self) {
 //   (copia de *p_dado para uma memória gerenciada pelo grafo)
 // caso a aresta não exista, deve ser criada
 // caso p_dado seja NULL, a aresta deve ser removida
-
-static void remove_aresta (Grafo self, int nó_origem, int nó_destino) {
-  No *origem = &self->nos[nó_origem];
-  No *destino = &self->nos[nó_destino];
-
-  Aresta **a = &origem->saidas;
-  while ((*a)->destino != nó_destino) {
-    a = &(*a)->prox_saida;
-  }
-  Aresta *removida = *a;
-  *a = (*a)->prox_saida;
-
-  a = &destino->entradas;
-  while (*a != removida) {
-    a = &(*a)->prox_entrada;
-  }
-  *a = (*a)->prox_entrada;
-
-  free(removida->valor);
-  free(removida);
-}
-
-static void cria_aresta (Grafo self, int nó_origem, int nó_destino, void *p_dado) {
-  No *origem = &self->nos[nó_origem];
-  Aresta **a = &origem->saidas;
-  while ((*a) != NULL) {
-    a = &(*a)->prox_saida;
-  }
-  Aresta *nova = malloc(sizeof(Aresta));
-  nova->origem = nó_origem;
-  nova->destino = nó_destino;
-  nova->prox_saida = NULL;
-  nova->prox_entrada = NULL;
-  nova->valor = malloc(self->tam_aresta);
-  memcpy(nova->valor, p_dado, self->tam_aresta);
-
-  *a = nova;
-}
-
-static bool existe_aresta (Grafo self, int nó_origem, int nó_destino) {
-  No *origem = &self->nos[nó_origem];
-  Aresta *a = origem->saidas;
-  while (a != NULL && a->destino != nó_destino) {
-    a = a->prox_saida;
-  }
-  return (a != NULL);
-}
-
 void g_altera_valor_da_aresta(Grafo self, int nó_origem, int nó_destino, void *p_dado) {
   bool existe = existe_aresta(self, nó_origem, nó_destino);
   if(!existe && p_dado == NULL) return; //não há aresta para remover
@@ -323,22 +361,6 @@ void *g_próxima_aresta(Grafo self, int *p_nó_vizinho) {
 // Algoritmos
 
 // retorna true se grafo é cíclico, false caso contrário
-
-static bool rec_ciclo (Grafo self, int *estados, int no) {
-  Aresta *a = self->nos[no].saidas;
-  estados[no] = 1;
-  while (a != NULL) {
-    if (estados[a->destino] == 1) return true;
-    if (estados[a->destino] == 0) {
-        if (rec_ciclo(self, estados, a->destino)) return true;
-    }
-    a = a->prox_saida;
-  }
-  estados[no] = 2;
-  return false;
-}
-
-
 bool g_tem_ciclo(Grafo self) {
   if (self->num_nos == 0) return false;
 
@@ -357,26 +379,6 @@ bool g_tem_ciclo(Grafo self) {
   return ciclo;
 }
 
-static void calcula_graus_entrada (Grafo self, int *v) {
-  for (int i = 0; i < self->num_nos; i++) {
-    Aresta *a = self->nos[i].entradas;
-    int cont = 0;
-    while (a != NULL) {
-      a = a->prox_entrada;
-      cont++;
-    }
-    v[i] = cont;
-  }
-}
-
-static void diminui_graus_entrada(Grafo self, int *v, int i) {
-  Aresta *a = self->nos[i].saidas;
-  while (a != NULL) {
-    v[a->destino]--;
-    a = a->prox_saida;
-  }
-}
-
 // retorna uma fila de inteiros contendo os números dos nós do grafo em
 //   uma ordem em que, se o nó 'a' antecede 'b', não existe uma aresta
 //   de 'b' para 'a' no grafo
@@ -393,9 +395,7 @@ Fila g_ordem_topológica(Grafo self) {
   while (cont < self->num_nos) {
     for (int i = 0; i < self->num_nos; i++) {
       if (graus_entrada[i] == 0) {
-        int *p = malloc(sizeof(int));
-        *p = i;
-        f_insere(f, p);
+        f_insere(f, &i);
         diminui_graus_entrada(self, graus_entrada, i);
         graus_entrada[i] = -1;
         break;

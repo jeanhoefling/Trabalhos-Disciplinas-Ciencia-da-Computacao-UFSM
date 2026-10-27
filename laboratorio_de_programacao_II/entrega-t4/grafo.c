@@ -22,9 +22,6 @@
 #include <assert.h>
 #include <string.h>
 
-#define SAIDA 1
-#define ENTRADA 2
-
 #define AUMENTA 3
 #define DIMINUI 4
 
@@ -49,6 +46,11 @@ struct grafo {
   int tam_no;
   int tam_aresta;
   int tam_alocado;
+
+  // Para realizar consultas
+  Aresta *atual;
+  int no_consultado;
+  bool consulta_saidas; // True se estiver consultando saidas, false se consultando entradas
 };
 
 Grafo g_cria(int tam_nó, int tam_aresta) {
@@ -59,6 +61,9 @@ Grafo g_cria(int tam_nó, int tam_aresta) {
   g->tam_no = tam_nó;
   g->tam_aresta = tam_aresta;
   g->tam_alocado = 0;
+  g->atual = NULL;
+  g->no_consultado = -1;
+  g->consulta_saidas = false;
   return g;
 }
 
@@ -86,7 +91,7 @@ static void realoca (Grafo self, char op) {
   else {
     if (self->num_nos == 0) {
       free(self->nos);
-      self->nos = NULL
+      self->nos = NULL;
       self->tam_alocado = 0;
     }
     else {
@@ -113,31 +118,36 @@ int g_insere_nó(Grafo self, void *p_dado) {
   return self->num_nos - 1;
 }
 
-/* JEAN: Função para liberar memória de uma aresta e ajustar o encadeamento das 2 listas
-Se ajuste == SAIDA, significa que precisa ajustar o encadeamento das arestas de saida
-Se ajuste == ENTRADA, significa que precisa ajustar o encadeamento das arestas de entrada*/
-static void libera_aresta(Grafo self, Aresta *a, char ajuste) {
-  if (ajuste == SAIDA) {
-    Aresta **at = &self->nos[a->origem].saidas;
-    while (*at != NULL && *at != a) {
-      at = &(*at)->prox_saida;
-    }
-    if (*at != NULL) {
-        *at = a->prox_saida;
-    }
-  } 
-  else {
-    Aresta **at = &self->nos[a->destino].entradas;
-    while (*at != a && *at != NULL) {
-      at = &(*at)->prox_entrada;
-    }
-    if (*at != NULL) {
-      *at = a->prox_entrada;
+/* JEAN: Função para liberar arestas conectadas a um nó e ajustar o encadeamento
+das 2 listas */
+static void libera_aresta(Grafo self, No *remov, int nó) {
+  for (int i = 0; i < self->num_nos; i++) {
+    No *atual = &self->nos[i];
+    if (atual == remov) continue;
+    Aresta **a = &atual->entradas;
+    while ((*a) != NULL) {
+      if ((*a)->origem == nó || (*a)->destino == nó) {
+        *a = (*a)->prox_entrada;
+      } else {
+        a = &(*a)->prox_entrada;
+      }
     }
   }
 
-  free(a->valor);
-  free(a);
+  for (int i = 0; i < self->num_nos; i++) {
+    No *atual = &self->nos[i];
+    if (atual == remov) continue;
+    Aresta **a = &atual->saidas;
+    while ((*a) != NULL) {
+      if ((*a)->origem == nó || (*a)->destino == nó) {
+        Aresta *temp = *a;
+        *a = temp->prox_saida;
+        free(temp);
+      } else {
+        a = &(*a)->prox_saida;
+      }
+    }
+  }
 }
 // remove um nó do grafo e as arestas incidentes nesse nó
 // a identificação dos nós remanescentes é alterada, como se esse nó nunca
@@ -147,20 +157,10 @@ void g_remove_nó(Grafo self, int nó) {
   
   No *remov = &self->nos[nó]; 
 
-  Aresta *a = remov->entradas 
-  while (a != NULL) {
-    Aresta *temp = a;
-    a = a->prox_entrada;
-    libera_aresta(self, temp, SAIDA);
-  }
-  a = remov->saidas
-  while (a != NULL) {
-    Aresta *temp = a;
-    a = a->prox_saida;
-    libera_aresta(self, temp, ENTRADA);
-  }
+  libera_aresta(self, remov, nó);
 
   free(remov->dado);
+
   for (int i = nó; i < self->num_nos - 1; i++) {
     self->nos[i] = self->nos[i+1];
   }
@@ -172,14 +172,24 @@ void g_remove_nó(Grafo self, int nó) {
 
 // altera o valor associado a um nó (copia o valor apontado por p_dado para
 //   uma memória gerenciada pelo grafo)
-void g_altera_valor_do_nó(Grafo self, int nó, void *p_dado);
+void g_altera_valor_do_nó(Grafo self, int nó, void *p_dado) {
+  if (nó < 0 || nó > self->num_nos - 1) return;
+  No *no = &self->nos[nó];
+  memcpy(no->dado, p_dado, self->tam_no);
+}
 
 // retorna um ponteiro para o valor associado a um nó que está na memória
 //   gerenciada pelo grafo.
-void *g_valor_do_nó(Grafo self, int nó);
+void *g_valor_do_nó(Grafo self, int nó) {
+  if (nó < 0 || nó > self->num_nos - 1) return NULL;
+  No no = self->nos[nó];
+  return no.dado;
+}
 
 // retorna o número de nós do grafo
-int g_num_nós(Grafo self);
+int g_num_nós(Grafo self) {
+  return self->num_nos;
+}
 
 // Arestas
 
@@ -187,23 +197,106 @@ int g_num_nós(Grafo self);
 //   (copia de *p_dado para uma memória gerenciada pelo grafo)
 // caso a aresta não exista, deve ser criada
 // caso p_dado seja NULL, a aresta deve ser removida
-void g_altera_valor_da_aresta(Grafo self, int nó_origem, int nó_destino,
-                              void *p_dado);
+
+static void remove_aresta (Grafo self, int nó_origem, int nó_destino) {
+  No *origem = &self->nos[nó_origem];
+  No *destino = &self->nos[nó_destino];
+
+  Aresta **a = &origem->saidas;
+  while ((*a)->destino != nó_destino) {
+    a = &(*a)->prox_saida;
+  }
+  Aresta *removida = *a;
+  *a = (*a)->prox_saida;
+
+  a = &destino->entradas;
+  while (*a != removida) {
+    a = &(*a)->prox_entrada;
+  }
+  *a = (*a)->prox_entrada;
+
+  free(removida->valor);
+  free(removida);
+}
+
+static void cria_aresta (Grafo self, int nó_origem, int nó_destino, void *p_dado) {
+  No *origem = &self->nos[nó_origem];
+  Aresta **a = &origem->saidas;
+  while ((*a) != NULL) {
+    a = &(*a)->prox_saida;
+  }
+  Aresta *nova = malloc(sizeof(Aresta));
+  nova->origem = nó_origem;
+  nova->destino = nó_destino;
+  nova->prox_saida = NULL;
+  nova->prox_entrada = NULL;
+  nova->valor = malloc(self->tam_aresta);
+  memcpy(nova->valor, p_dado, self->tam_aresta);
+
+  *a = nova;
+}
+
+static bool existe_aresta (Grafo self, int nó_origem, int nó_destino) {
+  No *origem = &self->nos[nó_origem];
+  Aresta *a = origem->saidas;
+  while (a != NULL && a->destino != nó_destino) {
+    a = a->prox_saida;
+  }
+  return (a != NULL);
+}
+
+void g_altera_valor_da_aresta(Grafo self, int nó_origem, int nó_destino, void *p_dado) {
+  bool existe = existe_aresta(self, nó_origem, nó_destino);
+  if(!existe && p_dado == NULL) return; //não há aresta para remover
+
+  if (!existe && p_dado != NULL) {
+    cria_aresta(self, nó_origem, nó_destino, p_dado);
+    return;
+  }
+
+  if (existe && p_dado == NULL) {
+    remove_aresta(self, nó_origem, nó_destino);
+    return;
+  }
+
+  No *origem = &self->nos[nó_origem];
+  Aresta *a = origem->saidas;
+  while (a->destino != nó_destino) {
+    a = a->prox_saida;
+  }
+  memcpy(a->valor, p_dado, self->tam_aresta);
+}
 
 // retorna um ponteiro para o valor associado à aresta entre nó_origem e 
 //   nó_destino, localizado em memória gerenciada pelo grafo.
 // retorna NULL se tal aresta não existir
-void *g_valor_da_aresta(Grafo self, int nó_origem, int nó_destino);
+void *g_valor_da_aresta(Grafo self, int nó_origem, int nó_destino) {
+  No *origem = &self->nos[nó_origem];
+  Aresta *a = origem->saidas;
+  while (a != NULL && a->destino != nó_destino) {
+    a = a->prox_saida;
+  }
+  if (a == NULL) return NULL;
+  return a->valor;
+}
 
 // inicia uma consulta a arestas que partem do nó origem
 // as próximas chamadas a 'g_próxima_aresta' devem retornar os valores
 //   correspondentes a cada aresta que parte desse nó
-void g_arestas_que_partem(Grafo self, int nó_origem);
+void g_arestas_que_partem(Grafo self, int nó_origem) {
+  self->atual = self->nos[nó_origem].saidas;
+  self->no_consultado = nó_origem;
+  self->consulta_saidas = true;
+}
 
 // inicia uma consulta a arestas que chegam ao nó destino
 // as próximas chamadas a 'g_próxima_aresta' devem retornar os valores
 //   correspondentes a cada aresta que chega nesse nó
-void g_arestas_que_chegam(Grafo self, int nó_destino);
+void g_arestas_que_chegam(Grafo self, int nó_destino) {
+  self->atual = self->nos[nó_destino].entradas;
+  self->no_consultado = nó_destino;
+  self->consulta_saidas = false;
+}
 
 // retorna um ponteiro para o dado associado à próxima aresta, de acordo
 //   com a última consulta iniciada por 'g_arestas_que_partem' ou 
@@ -211,12 +304,58 @@ void g_arestas_que_chegam(Grafo self, int nó_destino);
 // o valor do nó vizinho ao nó da consulta deve ser colocado em '*p_nó_vizinho'
 //   (se não for NULL)
 // caso não exista mais aresta que satisfaça a consulta, retorna NULL.
-void *g_próxima_aresta(Grafo self, int *p_nó_vizinho);
+void *g_próxima_aresta(Grafo self, int *p_nó_vizinho) {
+  Aresta *a = self->atual;
+
+  if (a == NULL) return NULL;
+
+  if (p_nó_vizinho != NULL) {
+    if (self->consulta_saidas) *p_nó_vizinho = a->destino;
+    else *p_nó_vizinho = a->origem;
+  }
+
+  if (self->consulta_saidas) self->atual = a->prox_saida;
+  else self->atual = a->prox_entrada;
+
+  return a->valor;
+}
 
 // Algoritmos
 
 // retorna true se grafo é cíclico, false caso contrário
-bool g_tem_ciclo(Grafo self);
+
+static bool rec_ciclo (Grafo self, int *estados, int no) {
+  Aresta *a = self->nos[no].saidas;
+  estados[no] = 1;
+  while (a != NULL) {
+    if (estados[a->destino] == 1) return true;
+    if (estados[a->destino] == 0) {
+        if (rec_ciclo(self, estados, a->destino)) return true;
+    }
+    a = a->prox_saida;
+  }
+  estados[no] = 2;
+  return false;
+}
+
+
+bool g_tem_ciclo(Grafo self) {
+  if (self->num_nos == 0) return false;
+
+  int *estados = malloc(sizeof(int) * self->num_nos);
+  for (int i = 0; i < self->num_nos; i++) {
+    estados[i] = 0;
+  }
+  bool ciclo = 0;
+  for (int i = 0; i < self->num_nos; i++) {
+    if (estados[i] == 2) continue;
+    ciclo = rec_ciclo(self, estados, i);  
+    if (ciclo) break;
+  }
+
+  free(estados);
+  return ciclo;
+}
 
 // retorna uma fila de inteiros contendo os números dos nós do grafo em
 //   uma ordem em que, se o nó 'a' antecede 'b', não existe uma aresta

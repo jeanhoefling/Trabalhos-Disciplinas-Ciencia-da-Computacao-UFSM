@@ -86,36 +86,6 @@ static void realoca (Grafo self, char op) {
   }
 }
 
-/* Função para liberar arestas conectadas a um nó e ajustar o encadeamento das 2 listas */
-static void libera_aresta(Grafo self, No *remov, int nó) {
-  for (int i = 0; i < self->num_nos; i++) {
-    No *atual = &self->nos[i];
-    if (atual == remov) continue;
-    Aresta **a = &atual->entradas;
-    while ((*a) != NULL) {
-      if ((*a)->origem == nó || (*a)->destino == nó) {
-        *a = (*a)->prox_entrada;
-      } else {
-        a = &(*a)->prox_entrada;
-      }
-    }
-  }
-
-  for (int i = 0; i < self->num_nos; i++) {
-    No *atual = &self->nos[i];
-    if (atual == remov) continue;
-    Aresta **a = &atual->saidas;
-    while ((*a) != NULL) {
-      if ((*a)->origem == nó || (*a)->destino == nó) {
-        Aresta *temp = *a;
-        *a = temp->prox_saida;
-        free(temp);
-      } else {
-        a = &(*a)->prox_saida;
-      }
-    }
-  }
-}
 
 static void remove_aresta (Grafo self, int nó_origem, int nó_destino) {
   No *origem = &self->nos[nó_origem];
@@ -240,18 +210,34 @@ int g_insere_nó(Grafo self, void *p_dado) {
 //   tivesse existido
 void g_remove_nó(Grafo self, int nó) {
   if (nó < 0 || nó >= self->num_nos) return;
-  
-  No *remov = &self->nos[nó]; 
 
-  libera_aresta(self, remov, nó);
+  while (self->nos[nó].saidas != NULL) {
+    remove_aresta(self, nó, self->nos[nó].saidas->destino);
+  }
 
-  free(remov->dado);
+  while (self->nos[nó].entradas != NULL) {
+    remove_aresta(self, self->nos[nó].entradas->origem, nó);
+  }
 
+  free(self->nos[nó].dado);
+
+  //desloca o vetor de nós
   for (int i = nó; i < self->num_nos - 1; i++) {
     self->nos[i] = self->nos[i+1];
   }
 
   self->num_nos--;
+  
+  // renumera: cada aresta aparece uma vez em alguma lista de saídas
+  for (int i = 0; i < self->num_nos; i++) {
+    Aresta *a = self->nos[i].saidas;
+    while (a != NULL) {
+      if (a->origem  > nó) a->origem--;
+      if (a->destino > nó) a->destino--;
+      a = a->prox_saida;
+    }
+  }
+
   if (self->num_nos <= self->tam_alocado / 2 && self->num_nos >= 8
   || self->num_nos == 0) realoca(self, DIMINUI);
 }

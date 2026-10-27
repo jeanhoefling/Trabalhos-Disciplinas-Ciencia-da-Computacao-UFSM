@@ -357,9 +357,51 @@ bool g_tem_ciclo(Grafo self) {
   return ciclo;
 }
 
+static void calcula_graus_entrada (Grafo self, int *v) {
+  for (int i = 0; i < self->num_nos; i++) {
+    Aresta *a = self->nos[i].entradas;
+    int cont = 0;
+    while (a != NULL) {
+      a = a->prox_entrada;
+      cont++;
+    }
+    v[i] = cont;
+  }
+}
+
+static void diminui_graus_entrada(Grafo self, int *v, int i) {
+  Aresta *a = self->nos[i].saidas;
+  while (a != NULL) {
+    v[a->destino]--;
+    a = a->prox_saida;
+  }
+}
+
 // retorna uma fila de inteiros contendo os números dos nós do grafo em
 //   uma ordem em que, se o nó 'a' antecede 'b', não existe uma aresta
 //   de 'b' para 'a' no grafo
 // deve retornar uma fila vazia caso tal ordem não exista
 // quem chama esta função é responsável por destruir a fila.
-Fila g_ordem_topológica(Grafo self);
+Fila g_ordem_topológica(Grafo self) {
+  Fila f = f_cria(4); // 4 bytes -> fila de inteiros
+  if (g_tem_ciclo(self) || self->num_nos == 0) return f;
+
+  int graus_entrada[self->num_nos];
+  calcula_graus_entrada(self, graus_entrada);
+
+  int cont = 0;
+  while (cont < self->num_nos) {
+    for (int i = 0; i < self->num_nos; i++) {
+      if (graus_entrada[i] == 0) {
+        int *p = malloc(sizeof(int));
+        *p = i;
+        f_insere(f, p);
+        diminui_graus_entrada(self, graus_entrada, i);
+        graus_entrada[i] = -1;
+        break;
+      }
+    }
+    cont++;
+  }
+  return f;
+}

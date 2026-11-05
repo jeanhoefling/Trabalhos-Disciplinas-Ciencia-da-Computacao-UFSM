@@ -1,7 +1,9 @@
 /* ORIENTAÇÕES IMPORTANTES:
-1. O TAD utiliza allegro em uma de suas funções, portanto compile com: 
-gcc main.c treap.c -o treap -lallegro_primitives -lallegro_font -lallegro
-2. O tipo de dado a ser manipulado é int*/
+1. Compilação padrão (sem Allegro, imprime_ia só avisa que está indisponível):
+   gcc main.c treap.c -o treap
+2. Compilação com a impressão gráfica (requer Allegro 5):
+   gcc -DUSAR_ALLEGRO main.c treap.c -o treap -lallegro_primitives -lallegro_font -lallegro
+3. O tipo de dado a ser manipulado é int. */
 
 #ifndef TREAP_H
 #define TREAP_H

@@ -2,9 +2,12 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#ifdef USAR_ALLEGRO
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
+#endif
 
 #define FILHO_ESQ 3
 #define FILHO_DIR 4 
@@ -224,6 +227,7 @@ void destroi_treap (Treap arv) {
 
 /* ------- Impressão gráfica feita por IA (extra, útil para apresentação) ------- */
  
+#ifdef USAR_ALLEGRO
 typedef struct {
     float espac_x;   // distância horizontal entre nós consecutivos (em ordem)
     float espac_y;   // distância vertical entre níveis
@@ -374,3 +378,10 @@ void imprime_ia (Treap arv) {
     al_destroy_font(l.fonte);
     al_destroy_display(disp);
 }
+
+#else
+void imprime_ia (Treap arv) {
+    (void)arv;
+    printf("imprime_ia indisponivel: compile com -DUSAR_ALLEGRO e as bibliotecas do Allegro.\n");
+}
+#endif

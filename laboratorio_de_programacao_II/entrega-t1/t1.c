@@ -3,6 +3,21 @@
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdbool.h>
+
+#define TEC_ESC    27
+#define TEC_TAB    '\t'
+#define TEC_ENTER  '\r'
+#define TEC_ESPACO ' '
+
+#define PONTOS_TIROS_RESTANTES   2
+#define PONTOS_ESCUDOS_RESTANTES 10
+
+#define ULTIMA_ARMA_DIA   '9'
+#define ULTIMA_ARMA_NOITE '8'
+
+#define RED_CHANCE_DIA   20
+#define CHANCE_DIA_MINIMA  20
 
 typedef struct timespec crono;
 
@@ -11,10 +26,10 @@ typedef struct {
   int tiros;
   int escudos;
   int onda;
-  int noite;
+  bool noite;
   int inimigos_onda;
 
-  int fim;
+  bool fim;
 
   char arma;
   char esc_atac[13];
@@ -124,7 +139,7 @@ char gera_inimigo(estado_jogo *e) {
 void desloca_inimigos(estado_jogo *e) {
   if (e->esc_atac[e->escudos] != ' ') {
     if (e->escudos == 0) {
-      e->fim = 1;
+      e->fim = true;
       return;
     } else {
       e->esc_atac[e->escudos - 1] = ' ';
@@ -156,7 +171,8 @@ void reset_atacantes(estado_jogo *e) {
 
 // Serve para trocar de arma (adaptada para dia/noite)
 void troca_arma(estado_jogo *e) {
-  if ((e->arma == '9' && !(e->noite)) || (e->arma == '8' && (e->noite)) ) {
+  if ((e->arma == ULTIMA_ARMA_DIA && !(e->noite)) || 
+  (e->arma == ULTIMA_ARMA_NOITE && (e->noite)) ) {
     e->arma = 'n';
   }
   else if (e->arma == 'n') {
@@ -221,16 +237,16 @@ void sonar(estado_jogo *e) {
 // Executa a acao correspondente a tecla recebida
 void exec_tecla(char c, estado_jogo *e) {
   switch (c) {
-    case 27:
-      e->fim = 1;
+    case TEC_ESC:
+      e->fim = true;
       break;
-    case '\t':
+    case TEC_TAB:
       troca_arma(e);
       break;
-    case '\r':
+    case TEC_ENTER:
       atira(e);
       break;
-    case ' ':
+    case TEC_ESPACO:
       sonar(e);
       break;
     default:
@@ -252,13 +268,13 @@ float temp_onda(estado_jogo e) {
 }
 
 // Verifica se todos os atacantes foram neutralizados
-int fim_ataque(estado_jogo e) {
+bool fim_ataque(estado_jogo e) {
   for (int i = e.escudos; i < 13; i++) {
     if (e.esc_atac[i] != ' ') {
-      return 0;
+      return false;
     }
   }
-  return 1;
+  return true;
 }
 
 // Essa funcao executa a onda e chama todas as funcoes necessarias para seu funcionamento
@@ -285,21 +301,21 @@ void exec_onda(estado_jogo *e) {
 
 // Essa funcao faz o "sorteio" entre dia/noite
 void vira_noite(estado_jogo *e) {
-  e->noite = 0;
-  int chance_dia = 100 - 20 * (e->onda - 1);
-  if (chance_dia < 20) {
-    chance_dia = 20;
+  e->noite = false;
+  int chance_dia = 100 - RED_CHANCE_DIA * (e->onda - 1);
+  if (chance_dia < CHANCE_DIA_MINIMA) {
+    chance_dia = CHANCE_DIA_MINIMA;
   }
   int n = rand() % 100 + 1;
   if (n > chance_dia) {
-    e->noite = 1;
+    e->noite = true;
   } 
 }
 
 // Incrementa os pontos por escudos e tiros restantes da onda
 void pontos_onda(estado_jogo *e) {
-  e->pontos += 2 * e->tiros * (e->noite + 1);
-  e->pontos += 10 * e->escudos * (e->noite + 1);
+  e->pontos += PONTOS_TIROS_RESTANTES * e->tiros * (e->noite + 1);
+  e->pontos += PONTOS_ESCUDOS_RESTANTES * e->escudos * (e->noite + 1);
 }
 
 // Recarrega os tiros e reseta a arma a cada onda
@@ -377,9 +393,9 @@ void tela_fonda(estado_jogo *e) {
   int c;
   do {
     c = lechar();
-  } while (c != 27 && c != 'r');
-  if (c == 27) {
-    e->fim = 1;
+  } while (c != TEC_ESC && c != 'r');
+  if (c == TEC_ESC) {
+    e->fim = true;
   }
   system("clear");
 }
@@ -400,7 +416,7 @@ void fim_onda(estado_jogo *e) {
 }
 
 void partida(FILE *arq) {
-  estado_jogo e = { 0, 30, 3, 1, 0, 0, 0, '0' };
+  estado_jogo e = { 0, 30, 3, 1, false, 0, false, '0' };
   while (!e.fim) {
     exec_onda(&e);
     if (e.fim) {

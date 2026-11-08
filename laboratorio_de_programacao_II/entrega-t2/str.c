@@ -12,6 +12,7 @@ struct str {
   byte *s;
   int b_uso;
   int b_aloc;
+  int nchars; 
 };
 
 // A memória para conter os bytes de uma string deve ser alocada e/ou
@@ -33,11 +34,12 @@ static void s_ok(Str_c s)
   if (s->s == NULL) {
     assert(s->b_uso == 0);
     assert(s->b_aloc == 0);
+    assert(s->nchars == 0);
   }
   else {
     assert(s->b_aloc >= MIN_ALLOC);
     assert(s->b_uso <= s->b_aloc);
-    assert(u8_conta_unichar_nos_bytes(s->b_uso, s->s) != -1);
+    assert(s->nchars >= 1 && s->nchars <= s->b_uso);
   }
 }
 
@@ -51,12 +53,14 @@ Str s_cria(char const *strC)
   str->s = NULL;
   str->b_uso = 0;
   str->b_aloc = 0;
+  str->nchars = 0;
 
   if (strC == NULL) return str;
   int tam = strlen(strC);
   if (tam == 0) return str;
 
-  if (u8_conta_unichar_nos_bytes(tam, (byte *)strC) == -1) return str;
+  int nchars = u8_conta_unichar_nos_bytes(tam, (byte *)strC);
+  if (nchars == -1) return str;
 
 
   int nb_aloc = MIN_ALLOC;
@@ -69,9 +73,9 @@ Str s_cria(char const *strC)
     str->s[i] = strC[i];
   }
 
-
   str->b_uso = tam;
   str->b_aloc = nb_aloc;
+  str->nchars = nchars;
 
   return str;
 }
@@ -133,7 +137,7 @@ Str s_cria_de_arquivo(char *nome)
 int s_tam(Str_c s)
 {
   s_ok(s);
-  return u8_conta_unichar_nos_bytes(s->b_uso, s->s);
+  return s->nchars;
 }
 
 char *s_strc(Str_c s)
@@ -193,13 +197,21 @@ int s_busca_c(Str_c s, int pos, Str_c sb)
   s_ok(sb);
 
   if (pos < 0) pos = s_tam(s) + pos + 1;
+  if (pos > s_tam(s)) pos = s_tam(s);
+
+  int pos_s = u8_avanca_unichar(s->s, pos) - s->s;
 
   for (int i = pos; i < s_tam(s); i++) {
-    for (int j = 0; j < s_tam(sb); j++) {
-      if (s_ch(s, i) == s_ch(sb, j)) {
-        return i;
-      }
+    unichar c;
+    int nb_s = u8_unichar_nos_bytes(s->b_uso - pos_s, s->s + pos_s, &c);
+    int pos_sb = 0;
+    while (pos_sb < sb->b_uso) {
+      unichar cb;
+      int nb_sb = u8_unichar_nos_bytes(sb->b_uso - pos_sb, sb->s + pos_sb, &cb);
+      if (c == cb) return i;
+      pos_sb += nb_sb;
     }
+    pos_s += nb_s;
   }
 
   return -1;
@@ -211,17 +223,28 @@ int s_busca_nc(Str_c s, int pos, Str_c sb)
   s_ok(sb);
   bool tem;
   if (pos < 0) pos = s_tam(s) + pos + 1;
+  if (pos > s_tam(s)) pos = s_tam(s);
+
+  int pos_s = u8_avanca_unichar(s->s, pos) - s->s;
 
   for (int i = pos; i < s_tam(s); i++) {
+    unichar c;
     tem = false;
-    for (int j = 0; j < s_tam(sb); j++) {
-      if (s_ch(s, i) == s_ch(sb, j)) {
+    int nb_s = u8_unichar_nos_bytes(s->b_uso - pos_s, s->s + pos_s, &c);
+    int pos_sb = 0;
+    while (pos_sb < sb->b_uso) {
+      unichar cb;
+      int nb_sb = u8_unichar_nos_bytes(sb->b_uso - pos_sb, sb->s + pos_sb, &cb);
+      if (c == cb) {
         tem = true;
         break;
       }
+      pos_sb += nb_sb;
     }
     if (!tem) return i;
+    pos_s += nb_s;
   }
+
   return -1;
 }
 
@@ -231,15 +254,30 @@ int s_busca_rc(Str_c s, int pos, Str_c sb)
   s_ok(sb);
 
   if (pos < 0) pos = s_tam(s) + pos + 1;
+  if (pos > s_tam(s)) pos = s_tam(s);
 
-  for (int i = pos - 1; i >= 0; i--) {
-    for (int j = 0; j < s_tam(sb); j++) {
-      if (s_ch(s, i) == s_ch(sb, j)) {
-        return i;
+  /* percorre s do início até pos, guardando a última posição 
+  em que o caractere pertence a sb, se não tiver nenhum retorna -1 (o esperado) */
+  int ultima = -1;
+  int pos_s = 0;
+
+  for (int i = 0; i < pos; i++) {
+    unichar c;
+    int nb_s = u8_unichar_nos_bytes(s->b_uso - pos_s, s->s + pos_s, &c);
+    int pos_sb = 0;
+    while (pos_sb < sb->b_uso) {
+      unichar cb;
+      int nb_sb = u8_unichar_nos_bytes(sb->b_uso - pos_sb, sb->s + pos_sb, &cb);
+      if (c == cb) {
+        ultima = i;
+        break;
       }
+      pos_sb += nb_sb;
     }
+    pos_s += nb_s;
   }
-  return -1;
+
+  return ultima;
 }
 
 int s_busca_rnc(Str_c s, int pos, Str_c sb)
@@ -249,19 +287,30 @@ int s_busca_rnc(Str_c s, int pos, Str_c sb)
   bool tem;
 
   if (pos < 0) pos = s_tam(s) + pos + 1;
+  if (pos > s_tam(s)) pos = s_tam(s);
 
-  for (int i = pos - 1; i >= 0; i--) {
+  int ultima = -1;
+  int pos_s = 0;
+
+  for (int i = 0; i < pos; i++) {
+    unichar c;
     tem = false;
-    for (int j = 0; j < s_tam(sb); j++) {
-      if (s_ch(s, i) == s_ch(sb, j)) {
+    int nb_s = u8_unichar_nos_bytes(s->b_uso - pos_s, s->s + pos_s, &c);
+    int pos_sb = 0;
+    while (pos_sb < sb->b_uso) {
+      unichar cb;
+      int nb_sb = u8_unichar_nos_bytes(sb->b_uso - pos_sb, sb->s + pos_sb, &cb);
+      if (c == cb) {
         tem = true;
         break;
       }
+      pos_sb += nb_sb;
     }
-    if (!tem) return i;
+    if (!tem) ultima = i;
+    pos_s += nb_s;
   }
 
-  return -1;
+  return ultima;
 }
 
 int s_busca_s(Str_c s, int pos, Str_c buscada)
@@ -270,16 +319,17 @@ int s_busca_s(Str_c s, int pos, Str_c buscada)
   s_ok(buscada);
 
   if (pos < 0) pos = s_tam(s) + pos + 1;
+  if (pos > s_tam(s)) pos = s_tam(s);
 
   if (s_tam(buscada) == 0) return pos;
 
-  for (int i = pos; i <= s_tam(s) - s_tam(buscada); i++) {
-    Str sub_s = s_cria_substring(s, i, s_tam(buscada));
-    if (s_igual(sub_s, buscada)) {
-      s_destroi(sub_s);
-      return i;
-    }
-    s_destroi(sub_s);
+  int dist = u8_avanca_unichar(s->s, pos) - s->s;
+
+  for (int i = pos; i <= s->nchars - buscada->nchars; i++) {
+    if (dist + buscada->b_uso <= s->b_uso &&
+      memcmp(s->s + dist, buscada->s, buscada->b_uso) == 0) return i;
+    
+    dist += u8_nbytes_no_unichar_que_comeca_com(s->s[dist]);
   }
 
   return -1;
@@ -290,14 +340,8 @@ int s_busca_s(Str_c s, int pos, Str_c buscada)
 
 void s_substitui(Str s, int pos, int tam, Str_c sb)
 {
-  Str sb_vazio = NULL;
-  if (sb == NULL) {
-    sb_vazio = s_cria("");
-    sb = sb_vazio;
-  }
-
   s_ok(s);
-  s_ok(sb);
+  if (sb != NULL) s_ok(sb);
 
   if (pos < -s_tam(s)) pos = 0;
   else if (pos < 0) pos = s_tam(s) + pos + 1;
@@ -305,17 +349,16 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
   if (tam < 0) tam = s_tam(s);
   if (pos + tam > s_tam(s)) tam = s_tam(s) - pos;
 
-  // pos_1 s[0] ate s[pos]
-  // pos_2 sb[0] até sb[tam(sb) - 1]
-  // pos_3 s[pos + tam] até s[tam(s) - 1]
-  byte *pos_fim_1 = u8_avanca_unichar(s->s, pos);
-  byte *pos_ini_3 = u8_avanca_unichar(s->s, pos + tam);
-  int bytes_total = (pos_fim_1 - s->s) + sb->b_uso + ((s->s + s->b_uso) - pos_ini_3);
+  int ini = u8_avanca_unichar(s->s, pos) - s->s;
+  int fim = u8_avanca_unichar(s->s + ini, tam) - s->s;
 
-  int indice_1 = pos_fim_1 - s->s; // Inicio da substituição
-  int indice_2 = pos_ini_3 - s->s; // Fim da substituição + 1
+  // STR_RES = INICIO(S) / SUBSTITUIDA(SB) / FIM(S)
 
-  Str s_copia = s_cria_cópia(s);
+  int b_sb = (sb != NULL) ? sb->b_uso : 0;
+  int n_sb = (sb != NULL) ? sb->nchars : 0;
+  int b_final_str = s->b_uso - fim; // bytes fim
+  int bytes_total = ini + b_sb + b_final_str;
+  int nchars_total = s->nchars - tam + n_sb;
 
   if (bytes_total > s->b_aloc) {
       if (s->b_aloc == 0) s->b_aloc = MIN_ALLOC;
@@ -325,15 +368,13 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
       s->s = nova_s;
   }
 
-  int i;
-  for (i = 0; i < sb->b_uso; i++) {
-    s->s[i + indice_1] = sb->s[i];
+  if (b_final_str > 0 && ini + b_sb != fim) {
+    memmove(s->s + ini + b_sb, s->s + fim, b_final_str);
   }
-  for (int j = 0; j < s->b_uso - indice_2; j++, i++) {
-    s->s[i + indice_1] = s_copia->s[j + indice_2];
-  }
+  if (b_sb > 0) memmove(s->s + ini, sb->s, b_sb);
 
   s->b_uso = bytes_total;
+  s->nchars = nchars_total;
   if (s->b_uso == 0) {
       free(s->s);
       s->s = NULL;
@@ -345,8 +386,6 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
       assert(nova_s != NULL);
       s->s = nova_s;
   }
-  s_destroi(s_copia);
-  if (sb_vazio != NULL) s_destroi(sb_vazio);
 }
 
 void s_substring(Str s, Str_c sb, int pos, int tam)
@@ -375,6 +414,7 @@ void s_substring(Str s, Str_c sb, int pos, int tam)
     s->s[i] = pos_ini[i];
   }
   s->b_uso = bytes;
+  s->nchars = tam;
   if (s->b_uso == 0) {
     free(s->s);
     s->s = NULL;

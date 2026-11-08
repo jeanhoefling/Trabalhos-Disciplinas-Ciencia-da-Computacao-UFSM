@@ -188,7 +188,16 @@ Grafo g_cria(int tam_nó, int tam_aresta) {
 
 // libera a memória ocupada por um grafo
 void g_destrói(Grafo self) {
-  while (self->num_nos > 0) g_remove_nó(self, 0);
+  for (int i = 0; i < self->num_nos; i++) {
+    Aresta *a = self->nos[i].saidas;
+    while (a != NULL) {
+      Aresta *prox = a->prox_saida;
+      free(a->valor);
+      free(a);
+      a = prox;
+    }
+    free(self->nos[i].dado);
+  }
   free(self->nos);
   free(self);
 }
@@ -365,6 +374,8 @@ bool g_tem_ciclo(Grafo self) {
   if (self->num_nos == 0) return false;
 
   int *estados = malloc(sizeof(int) * self->num_nos);
+  assert(estados != NULL);
+  
   for (int i = 0; i < self->num_nos; i++) {
     estados[i] = 0;
   }

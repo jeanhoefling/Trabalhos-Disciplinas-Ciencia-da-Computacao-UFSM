@@ -166,6 +166,10 @@ static void diminui_graus_entrada(Grafo self, int *v, int i) {
   }
 }
 
+static bool nó_válido(Grafo self, int n) { 
+  return n >= 0 && n < self->num_nos; 
+}
+
 // FUNÇÕES DO TAD
 
 Grafo g_cria(int tam_nó, int tam_aresta) {
@@ -270,6 +274,7 @@ int g_num_nós(Grafo self) {
 // caso a aresta não exista, deve ser criada
 // caso p_dado seja NULL, a aresta deve ser removida
 void g_altera_valor_da_aresta(Grafo self, int nó_origem, int nó_destino, void *p_dado) {
+  if (!nó_válido(self, nó_origem) || !nó_válido(self, nó_destino)) return;
   bool existe = existe_aresta(self, nó_origem, nó_destino);
   if(!existe && p_dado == NULL) return; //não há aresta para remover
 
@@ -295,6 +300,7 @@ void g_altera_valor_da_aresta(Grafo self, int nó_origem, int nó_destino, void 
 //   nó_destino, localizado em memória gerenciada pelo grafo.
 // retorna NULL se tal aresta não existir
 void *g_valor_da_aresta(Grafo self, int nó_origem, int nó_destino) {
+  if (!nó_válido(self, nó_origem) || !nó_válido(self, nó_destino)) return NULL;
   No *origem = &self->nos[nó_origem];
   Aresta *a = origem->saidas;
   while (a != NULL && a->destino != nó_destino) {
@@ -308,6 +314,10 @@ void *g_valor_da_aresta(Grafo self, int nó_origem, int nó_destino) {
 // as próximas chamadas a 'g_próxima_aresta' devem retornar os valores
 //   correspondentes a cada aresta que parte desse nó
 void g_arestas_que_partem(Grafo self, int nó_origem) {
+  if (!nó_válido(self, nó_origem)) {
+    self->atual = NULL;
+    return;
+  }
   self->atual = self->nos[nó_origem].saidas;
   self->no_consultado = nó_origem;
   self->consulta_saidas = true;
@@ -317,6 +327,10 @@ void g_arestas_que_partem(Grafo self, int nó_origem) {
 // as próximas chamadas a 'g_próxima_aresta' devem retornar os valores
 //   correspondentes a cada aresta que chega nesse nó
 void g_arestas_que_chegam(Grafo self, int nó_destino) {
+  if (!nó_válido(self, nó_destino)) {
+    self->atual = NULL;
+    return;
+  }
   self->atual = self->nos[nó_destino].entradas;
   self->no_consultado = nó_destino;
   self->consulta_saidas = false;

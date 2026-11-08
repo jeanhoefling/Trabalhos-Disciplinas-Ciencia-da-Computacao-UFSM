@@ -101,6 +101,8 @@ void f_insere(Fila self, void *pdado) {
 
 
 void f_inicia_percurso(Fila self, int pos_inicial) {
+    self->atual = NULL;
+    self->direcao = SEM_DIRECAO;
     if (self->tam_lista == 0) return;
     if (pos_inicial >  self->tam_lista - 1 || pos_inicial < -self->tam_lista) {
         printf("Posição inicial inválida\n");

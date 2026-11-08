@@ -158,14 +158,6 @@ static void calcula_graus_entrada (Grafo self, int *v) {
   }
 }
 
-static void diminui_graus_entrada(Grafo self, int *v, int i) {
-  Aresta *a = self->nos[i].saidas;
-  while (a != NULL) {
-    v[a->destino]--;
-    a = a->prox_saida;
-  }
-}
-
 static bool nó_válido(Grafo self, int n) { 
   return n >= 0 && n < self->num_nos; 
 }
@@ -396,23 +388,38 @@ bool g_tem_ciclo(Grafo self) {
 // deve retornar uma fila vazia caso tal ordem não exista
 // quem chama esta função é responsável por destruir a fila.
 Fila g_ordem_topológica(Grafo self) {
-  Fila f = f_cria(4); // 4 bytes -> fila de inteiros
-  if (g_tem_ciclo(self) || self->num_nos == 0) return f;
+  Fila res = f_cria(4); // 4 bytes -> fila de inteiros
+  if (self->num_nos == 0) return res;
 
   int graus_entrada[self->num_nos];
   calcula_graus_entrada(self, graus_entrada);
 
-  int cont = 0;
-  while (cont < self->num_nos) {
-    for (int i = 0; i < self->num_nos; i++) {
-      if (graus_entrada[i] == 0) {
-        f_insere(f, &i);
-        diminui_graus_entrada(self, graus_entrada, i);
-        graus_entrada[i] = -1;
-        break;
-      }
-    }
-    cont++;
+  Fila prontos = f_cria(4);
+  for (int i = 0; i < self->num_nos; i++) {
+    if (graus_entrada[i] == 0) f_insere(prontos, &i);
   }
-  return f;
+
+  int cont = 0; // serve para verificar ciclo no final
+  while (!f_tá_vazia(prontos)) {
+    int no;
+    f_remove(prontos, &no);
+    f_insere(res, &no);
+    cont++;
+
+    Aresta *a = self->nos[no].saidas;
+    while (a != NULL) {
+      graus_entrada[a->destino]--;
+      if (graus_entrada[a->destino] == 0) f_insere(prontos, &a->destino);
+      a = a->prox_saida;
+    }
+  }
+
+  f_destrói(prontos);
+
+  // se sobraram nós com grau maior que 0, então não tem ordem possível e há ciclo.
+  if (cont < self->num_nos) {
+    f_destrói(res);
+    res = f_cria(4);
+  }
+  return res;
 }
